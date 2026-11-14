@@ -290,13 +290,18 @@ function sWork(){
    ${p<pages-1?`<button class="btn" data-act="next">다음 쪽</button>`:`<button class="btn" data-act="submit">제출하기</button>`}</div>
    <button class="btn sm line" data-act="home" style="align-self:center">숙제 목록으로</button>`;
 }
+function resultMsg(r){
+  const wrong=Object.values(r.r).filter(v=>v==='x').length;
+  if(!r.tot) return '오늘도 책상 앞에 앉은 것만으로 충분히 대단해요.';
+  if(wrong===0) return '오늘 숙제, 하나도 놓치지 않았어요. 차곡차곡 쌓인 노력이 보여요.';
+  if(r.ok/r.tot>=0.7) return '끝까지 해낸 오늘이 제일 멋져요. 틀린 문제는 내일의 실력이 될 거예요.';
+  return '어려운 문제 앞에서도 끝까지 앉아 있었어요. 그 마음이면 충분히 늘어요.';
+}
 function sResult(){
-  const r=St.result, wrong=Object.values(r.r).filter(v=>v==='x').length;
-  const msg=wrong===0?'전부 맞혔어요! 오늘도 해냈네요.':`제출 완료! ${wrong}문항은 선생님과 같이 다시 봐요. 끝까지 한 게 대단해요.`;
+  const r=St.result;
   return `<div class="res"><div class="big">${r.ok}<small> / ${r.tot}</small></div><div class="ul"></div>${r.chk?`<div class="meta" style="margin-top:6px">선생님 확인 ${r.chk}문항</div>`:''}</div>
-   <div class="msg">${msg}</div>
+   <div class="msg">${resultMsg(r)}</div>
    <div class="rl">${Object.entries(r.r).sort((a,b)=>a[0]-b[0]).map(([n,v])=>`<span class="${v}" title="${v==='o'?'맞음':v==='x'?'다시 볼 문제':'선생님 확인'}">${n}</span>`).join('')}</div>
-   <div class="meta">연한 주황 칸은 다시 볼 문제예요. 정답은 보여주지 않고, 틀린 문제는 선생님이 오답 노트로 다시 줘요.</div>
    <button class="btn" data-act="home" style="margin-top:6px">숙제 목록으로</button>`;
 }
 function sSaveSoon(){
