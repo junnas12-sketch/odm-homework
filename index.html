@@ -4,88 +4,125 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>오늘도수학 숙제</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
+/* 오늘도수학 숙제 서식: 네이비 글씨, 작은 주황 포인트, 포스터 글꼴은 숫자와 제목에만 */
 :root{
-  --bg:#f3f2f7; --card:#ffffff; --fg:#23212e; --muted:#6c6879; --line:#e1dfea;
-  --accent:#6b5ba8; --accent-soft:#ebe7f6; --accent-fg:#ffffff;
-  --ok:#2f7d57; --ok-soft:#e1f2e9; --bad:#b4453b; --bad-soft:#f8e4e1; --warn:#9a6a14; --warn-soft:#f8efd9;
+  --bg:#f5f6fa; --card:#ffffff; --fg:#0e1640; --muted:#5b6280; --line:#e3e5ee; --line2:#edeff6;
+  --accent:#0e1640; --accent-soft:#e9ebf5; --accent-fg:#ffffff; --accent-text:#2b3468;
+  --orange:#fd5c00; --or-soft:#fff0e6; --or-text:#a64000; --or-line:#fcc7a4;
+  --ok:#2b3468; --ok-soft:#e9ebf5; --bad:#8a3300; --bad-soft:#fde3d3; --warn:#a64000; --warn-soft:#fff0e6;
+  --om-line:#8f95b4;
   --font:'Noto Sans KR',system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif;
+  --disp:'Black Han Sans','Noto Sans KR',sans-serif;
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#17161d; --card:#211f2a; --fg:#ece9f5; --muted:#a29eb4; --line:#34313f;
-  --accent:#a99be0; --accent-soft:#2e2a45; --accent-fg:#17161d;
-  --ok:#6cc79b; --ok-soft:#1d3329; --bad:#ee8c82; --bad-soft:#3a2321; --warn:#e3b45c; --warn-soft:#38301c; color-scheme:dark}}
+  --bg:#0b1030; --card:#141a42; --fg:#e8eaf6; --muted:#a3a9cc; --line:#2a3166; --line2:#222956;
+  --accent:#e8eaf6; --accent-soft:#232a5c; --accent-fg:#0b1030; --accent-text:#cdd1ef;
+  --orange:#ff7a2e; --or-soft:#3a2418; --or-text:#ffb68a; --or-line:#7a4524;
+  --ok:#cdd1ef; --ok-soft:#232a5c; --bad:#ffb68a; --bad-soft:#4a2a18; --warn:#ffb68a; --warn-soft:#3a2418;
+  --om-line:#6c74a8; color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.5;padding:0 max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 button{font:inherit;color:inherit;cursor:pointer}
 input,select,textarea{font:inherit;color:inherit}
 .wrap{max-width:1000px;margin:0 auto;padding:14px 0 60px}
+.bh{font-family:var(--disp);font-weight:400}
+.wm{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.wm i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--orange)}
 .top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:space-between;margin-bottom:14px}
-.brand{font-weight:700;font-size:18px}
+.brand{font-family:var(--disp);font-size:20px}
+.brand i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--orange);margin-right:7px;vertical-align:2px}
 .tabs{display:flex;flex-wrap:wrap;gap:6px}
 .tabs button{border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:10px;font-weight:500;color:var(--muted)}
 .tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
-.phone{max-width:430px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:22px;overflow:hidden;min-height:560px;display:flex;flex-direction:column}
-.phone-h{padding:14px 16px;background:var(--accent);color:var(--accent-fg);display:flex;justify-content:space-between;align-items:center;gap:8px}
-.phone-h b{font-size:16px}
-.pb{padding:16px;display:flex;flex-direction:column;gap:12px;flex:1}
-.who{font-size:13px;color:var(--muted)}
-.hw{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
-.hw h3{margin:0;font-size:16px}
+.phone{max-width:430px;margin:0 auto;background:var(--bg);border:0.5px solid var(--line);border-radius:22px;overflow:hidden;min-height:620px;display:flex;flex-direction:column;position:relative}
+.phone-h{padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.pb{padding:4px 12px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.ptitle{font-family:var(--disp);font-size:26px;line-height:1.15;padding:4px 4px 2px}
+.who{font-size:12px;color:var(--muted);padding:0 4px}
+.bar{height:4px;background:var(--line);border-radius:2px;margin:2px 4px}
+.bar i{display:block;height:4px;background:var(--orange);border-radius:2px}
+.hw{background:var(--card);border:0.5px solid var(--line);border-radius:14px;padding:13px 14px;display:flex;flex-direction:column;gap:7px}
+.hw.past{background:transparent;border-style:dashed}
+.hw .hrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hw h3{margin:0;font-family:var(--disp);font-weight:400;font-size:20px}
 .meta{font-size:13px;color:var(--muted)}
-.pill{display:inline-block;font-size:12px;font-weight:500;padding:2px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);border:0}
+.pill{display:inline-block;font-size:11px;font-weight:500;padding:2px 10px;border-radius:99px;background:var(--accent-soft);color:var(--accent-text);border:0;white-space:nowrap}
 .pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.warn{background:var(--warn-soft);color:var(--warn)}
-.btn{border:0;background:var(--accent);color:var(--accent-fg);padding:12px 16px;border-radius:12px;font-weight:700;width:100%}
-.btn.sec{background:var(--accent-soft);color:var(--accent)}
-.btn.line{background:none;border:1px solid var(--line);color:var(--fg);font-weight:500}
+.btn{border:0;background:var(--accent);color:var(--accent-fg);padding:12px 16px;border-radius:10px;font-weight:700;width:100%}
+.btn.sec{background:var(--accent-soft);color:var(--accent-text)}
+.btn.line{background:transparent;border:1px solid var(--line);color:var(--fg);font-weight:500}
 .btn.danger{background:var(--bad);color:#fff}
 .btn.sm{width:auto;padding:7px 12px;font-size:13px;border-radius:9px}
 .btn:disabled{opacity:.45;cursor:default}
-.q{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
-.q:first-of-type{border-top:0;padding-top:0}
-.qh{display:flex;align-items:center;gap:8px}
-.qn{font-weight:700;font-size:18px;min-width:30px}
-.qt{font-size:12px;color:var(--muted)}
-.choices{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.choices button{padding:10px 0;border:1px solid var(--line);background:var(--card);border-radius:10px;font-size:17px}
-.choices button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
-input[type=text],input[type=password],input[type=email],input[type=number],input[type=date],input[type=time],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:16px}
-textarea{min-height:90px}
-input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.keys{display:flex;flex-wrap:wrap;gap:5px}
-.keys button{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 9px;font-size:14px}
-.chk{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;font-size:14px;color:var(--muted)}
-.chk input{width:18px;height:18px}
-.pager{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
-.res{text-align:center;padding:8px 0}
-.res .big{font-size:44px;font-weight:700;color:var(--accent)}
-.msg{background:var(--accent-soft);color:var(--accent);padding:12px 14px;border-radius:12px;font-size:14px}
-.rl{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
-.rl span{text-align:center;padding:7px 0;border-radius:9px;font-weight:700;font-size:14px}
-.rl .o{background:var(--ok-soft);color:var(--ok)}.rl .x{background:var(--bad-soft);color:var(--bad)}.rl .c{background:var(--warn-soft);color:var(--warn)}
+/* 답안지 */
+.sheet{background:var(--card);border:0.5px solid var(--line);border-radius:14px;padding:4px 12px}
+.sr{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--line2)}
+.sr:last-child{border-bottom:0}
+.sr .qn{font-family:var(--disp);font-size:19px;min-width:34px;line-height:1}
+.om{display:flex;gap:6px}
+.om button{width:32px;height:44px;border-radius:50%;border:1.2px solid var(--om-line);background:var(--card);font-size:13px;font-weight:500;color:var(--muted);padding:0}
+.om button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.sr input[type=text]{flex:1;min-width:0;border:0;border-bottom:1.5px solid var(--accent);border-radius:0;background:transparent;padding:6px 2px;font-size:17px}
+.sr input[type=text]::placeholder{color:var(--muted);opacity:.6;font-size:14px}
+.sr.chkr{cursor:pointer}
+.sr.chkr span.t{flex:1;font-size:13px;color:var(--muted)}
+.sr.chkr input{width:20px;height:20px;accent-color:var(--accent)}
+.keys{display:flex;flex-wrap:wrap;gap:6px;padding:0 2px}
+.keys button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:5px 11px;font-size:14px}
+.pager{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);padding:0 4px}
+.nav2{display:flex;gap:8px;margin-top:auto;padding-top:6px}
+.nav2 .btn.line{flex:1}.nav2 .btn:not(.line){flex:2}
+/* 결과 */
+.res{padding:6px 4px}
+.res .big{font-family:var(--disp);font-size:56px;line-height:1}
+.res .big small{font-size:28px;color:var(--muted)}
+.res .ul{height:3px;width:36px;background:var(--orange);margin-top:7px}
+.msg{font-size:13px;color:var(--accent-text);padding:2px 4px}
+.rl{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:0 2px}
+.rl span{height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500}
+.rl .o{background:var(--accent-soft);color:var(--accent-text)}
+.rl .x{background:var(--or-soft);color:var(--or-text);border:1px solid var(--or-line)}
+.rl .c{background:transparent;color:var(--muted);border:1px dashed var(--om-line)}
+/* 제출 확인 */
+.cover{position:absolute;inset:0;background:rgba(10,14,40,.45);display:flex;align-items:flex-end;z-index:5}
+.sheetup{background:var(--card);width:100%;border-radius:18px 18px 0 0;padding:18px 16px 18px;display:flex;flex-direction:column;gap:8px}
+.sheetup h3{margin:0;font-family:var(--disp);font-weight:400;font-size:22px}
+.sheetup .row2{display:flex;gap:8px;margin-top:6px}
+.sheetup .row2 .btn{flex:1}
+/* 선생님 */
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.panel h2{margin:0;font-size:16px}
+.panel{background:var(--card);border:0.5px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h2{margin:0;font-size:16px;font-weight:700}
 .panel h2 small{font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
 .row{display:flex;flex-wrap:wrap;gap:10px}
 .fld{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);flex:1;min-width:110px}
+input[type=text],input[type=password],input[type=email],input[type=number],input[type=date],input[type=time],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:16px}
+textarea{min-height:90px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
 .classes{display:flex;flex-wrap:wrap;gap:8px}
 .classes label{display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--line);border-radius:10px;font-size:14px}
 .classes input{width:auto}
 .tw{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
-th{font-size:12px;color:var(--muted);font-weight:500}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:500;border-bottom-color:var(--line)}
 tr.click{cursor:pointer}tr.click:hover{background:var(--accent-soft)}
 .box{background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:12px 14px;font-size:14px}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:50;max-width:90vw}
-.det div.r{display:grid;grid-template-columns:40px 1fr 110px;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--accent);color:var(--accent-fg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:50;max-width:90vw}
+.det div.r{display:grid;grid-template-columns:40px 1fr 110px;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);overflow-wrap:anywhere}
 .center{max-width:380px;margin:40px auto;display:flex;flex-direction:column;gap:14px}
-.center h1{margin:0;font-size:22px}
+.center h1{margin:0;font-family:var(--disp);font-weight:400;font-size:28px}
+.center .tabs button{flex:1}
+@media (max-width:480px){
+  body{padding:0}
+  .wrap{padding:0}
+  .phone{border:0;border-radius:0;min-height:100vh;max-width:none}
+  .center{margin:24px 16px}
+}
 /* 오답 노트 인쇄 */
-#note{display:none}
 .note-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .note-page{background:#fff;color:#000;padding:0}
 .note-h{font-weight:700;font-size:15px;border-bottom:1px solid #999;padding-bottom:4px;margin-bottom:8px}
@@ -162,7 +199,7 @@ function render(){
   bind();
 }
 function loginHTML(){
-  return `<div class="center"><h1>오늘도수학 숙제</h1>
+  return `<div class="center"><div><div class="wm" style="font-size:13px;color:var(--muted)"><i></i>오늘도수학학원</div><h1>숙제</h1></div>
    <div class="tabs"><button data-lt="student" aria-pressed="${A.login==='student'}">학생</button><button data-lt="teacher" aria-pressed="${A.login==='teacher'}">선생님</button></div>
    ${A.login==='student'?`
     <div class="fld">이름<input id="ln" type="text" autocomplete="username" placeholder="선생님이 알려준 이름"></div>
@@ -192,32 +229,42 @@ async function studentHome(){
 function studentLogout(){ St.token=''; localStorage.removeItem('odm_token'); mode=null; render(); }
 function nowMs(){return Date.now();}
 function studentHTML(){
-  const head=`<div class="phone-h"><b>${St.screen==='home'?'숙제':'숙제 풀기'}</b><span style="font-size:13px">${esc(St.name)}</span></div>`;
+  const today=new Date().toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',month:'long',day:'numeric'});
+  const head=`<div class="phone-h"><span class="wm" style="color:var(--fg)"><i></i>오늘도수학학원</span><span>${St.screen==='home'?today:esc(St.name)}</span></div>`;
   let body='';
   if(St.screen==='home') body=sHome();
   else if(St.screen==='work') body=sWork();
   else body=sResult();
-  return `<div class="phone">${head}<div class="pb">${body}</div></div>`;
+  return `<div class="phone">${head}<div class="pb">${body}</div>${St.confirm?confirmHTML():''}</div>`;
 }
 function sHome(){
-  const h=St.home; if(!h) return '<div class="meta">불러오는 중이에요...</div>';
+  const h=St.home; if(!h) return '<div class="meta" style="padding:8px">불러오는 중이에요...</div>';
   const cards=h.assignments.map(a=>{
     const late = new Date(a.due).getTime() < nowMs();
-    let pill,act='';
+    let pill,act='',past=false;
     if(a.done){
-      pill='<span class="pill ok">제출 완료</span>';
-      act=`<div class="meta">맞힌 개수 ${a.result.ok} / ${a.result.tot}${a.result.chk?`, 선생님 확인 ${a.result.chk}문항`:''}</div><button class="btn sec" data-act="result" data-aid="${a.id}">결과 보기</button>`;
-    } else if(!a.has_book){ pill='<span class="pill bad">교재 정리됨</span>'; act='<div class="meta">지난 학기 교재라 더 풀 수 없어요.</div>'; }
-    else if(!late){ pill='<span class="pill warn">해야 해요</span>'; act=`<button class="btn" data-act="work" data-aid="${a.id}">풀러 가기</button>`; }
+      past=true; pill=`<span class="pill">${a.result.ok} / ${a.result.tot}</span>`;
+      act=`<div class="meta">제출 완료${a.result.chk?`, 선생님 확인 ${a.result.chk}문항`:''}</div><button class="btn sec" data-act="result" data-aid="${a.id}">결과 보기</button>`;
+    } else if(!a.has_book){ past=true; pill='<span class="pill bad">교재 정리됨</span>'; act='<div class="meta">지난 학기 교재라 더 풀 수 없어요.</div>'; }
+    else if(!late){ pill='<span class="pill warn">'+(isToday(a.due)?'오늘 마감':'해야 해요')+'</span>'; act=`<button class="btn" data-act="work" data-aid="${a.id}">풀러 가기</button>`; }
     else {
       pill='<span class="pill bad">기한 지남</span>';
       act=`<button class="btn line" data-act="work" data-aid="${a.id}">늦게라도 제출하기</button>
         <button class="btn sec" data-act="ext" data-aid="${a.id}" ${h.ext_used?'disabled':''}>${h.ext_used?'이번 달 미루기는 이미 썼어요':'내일 밤 12시까지 미루기 (이번 달 1번)'}</button>`;
     }
-    return `<div class="hw"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3>${esc(a.title)}</h3>${pill}</div>
+    return `<div class="hw ${past?'past':''}"><div class="hrow"><h3>${esc(a.title)}</h3>${pill}</div>
       <div class="meta">마감 ${fmt(a.due)}${a.extended?' (미룸)':''}</div>${act}</div>`;
   }).join('');
-  return `<div class="who">${esc(St.cls)} ${esc(St.name)} 학생</div>${cards||'<div class="meta">받은 숙제가 없어요.</div>'}<button class="btn sm line" id="lout" style="align-self:center">로그아웃</button>`;
+  return `<div class="who">${esc(St.cls)} ${esc(St.name)} 학생</div><div class="ptitle">오늘의 숙제</div>${cards||'<div class="meta" style="padding:8px 4px">받은 숙제가 없어요.</div>'}<button class="btn sm line" id="lout" style="align-self:center;margin-top:8px">로그아웃</button>`;
+}
+function isToday(ts){const f=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(d);return f(new Date(new Date(ts).getTime()-1000))===f(new Date());}
+function confirmHTML(){
+  const w=St.w; const ans=w.items.filter(q=>q.type==='객관식'||q.type==='단답'); const filled=ans.filter(q=>(w.answers[q.num]||'')!=='').length;
+  const chk=w.items.filter(q=>!(q.type==='객관식'||q.type==='단답')); const chked=chk.filter(q=>w.checked[q.num]).length;
+  return `<div class="cover"><div class="sheetup"><h3>제출할까요?</h3>
+   <div class="meta">제출하면 답을 고칠 수 없어요.</div>
+   <div class="meta">답을 쓴 문항 ${filled} / ${ans.length}${chk.length?`, 풀었다고 체크한 문항 ${chked} / ${chk.length}`:''}</div>
+   <div class="row2"><button class="btn line" data-act="cancel">조금 더 볼게요</button><button class="btn" data-act="dosubmit">제출하기</button></div></div></div>`;
 }
 async function openWork(aid){
   try{
@@ -228,29 +275,29 @@ async function openWork(aid){
 function sWork(){
   const w=St.w; const per=8, items=w.items, pages=Math.max(1,Math.ceil(items.length/per)); const p=Math.min(St.page,pages-1);
   const cur=items.slice(p*per,p*per+per);
-  const qs=cur.map(q=>{
-    let inp='';
-    if(q.type==='객관식') inp=`<div class="choices">${[1,2,3,4,5].map(i=>`<button data-ch="${q.num}" data-v="${i}" aria-pressed="${w.answers[q.num]==i}">${'①②③④⑤'[i-1]}</button>`).join('')}</div>`;
-    else if(q.type==='단답') inp=`<input type="text" data-in="${q.num}" value="${esc(w.answers[q.num]||'')}" placeholder="답을 적어요" autocomplete="off" autocapitalize="off">`;
-    else inp=`<label class="chk"><input type="checkbox" data-ck="${q.num}" ${w.checked[q.num]?'checked':''}>풀었어요. 선생님이 확인해 줄게요</label>`;
-    return `<div class="q"><div class="qh"><span class="qn">${q.num}</span><span class="qt">${q.type==='객관식'?'번호 고르기':q.type==='단답'?'답 쓰기':'선생님 확인'}</span></div>${inp}</div>`;
+  const rows=cur.map(q=>{
+    if(q.type==='객관식') return `<div class="sr"><span class="qn">${q.num}</span><div class="om">${[1,2,3,4,5].map(i=>`<button data-ch="${q.num}" data-v="${i}" aria-label="${q.num}번 ${i}" aria-pressed="${w.answers[q.num]==i}">${i}</button>`).join('')}</div></div>`;
+    if(q.type==='단답') return `<div class="sr"><span class="qn">${q.num}</span><input type="text" data-in="${q.num}" value="${esc(w.answers[q.num]||'')}" placeholder="답을 적어요" autocomplete="off" autocapitalize="off" aria-label="${q.num}번 답"></div>`;
+    return `<label class="sr chkr"><span class="qn">${q.num}</span><span class="t">풀었어요. 선생님이 확인해 줄게요</span><input type="checkbox" data-ck="${q.num}" ${w.checked[q.num]?'checked':''}></label>`;
   }).join('');
   const keys=['−','/','√','π','^','≤','≥','(',')'].map(k=>`<button data-key="${k}" type="button">${k}</button>`).join('');
-  return `<div class="meta">${esc(w.title)}</div>
-   <div class="pager"><span>${p+1} / ${pages} 쪽, 한 쪽에 ${per}문항</span></div>
-   ${qs}<div class="keys">${keys}</div>
-   <div style="display:flex;gap:8px;margin-top:auto"><button class="btn line" data-act="prev" ${p===0?'disabled':''}>이전 쪽</button>
+  return `<div class="who">${esc(w.title)}</div>
+   <div class="bar"><i style="width:${Math.round((p+1)*100/pages)}%"></i></div>
+   <div class="pager"><span>${p+1} / ${pages}쪽</span><span>한 쪽에 ${per}문항</span></div>
+   <div class="sheet">${rows}</div>
+   <div class="keys">${keys}</div>
+   <div class="nav2"><button class="btn line" data-act="prev" ${p===0?'disabled':''}>이전</button>
    ${p<pages-1?`<button class="btn" data-act="next">다음 쪽</button>`:`<button class="btn" data-act="submit">제출하기</button>`}</div>
    <button class="btn sm line" data-act="home" style="align-self:center">숙제 목록으로</button>`;
 }
 function sResult(){
   const r=St.result, wrong=Object.values(r.r).filter(v=>v==='x').length;
-  const msg=wrong===0?'전부 맞혔어요! 오늘도 해냈네요.':`제출 완료! ${wrong}문항은 선생님과 같이 다시 볼게요. 끝까지 한 게 대단해요.`;
-  return `<div class="res"><div class="big">${r.ok} / ${r.tot}</div><div class="meta">맞힌 개수${r.chk?`, 선생님 확인 ${r.chk}문항`:''}</div></div>
+  const msg=wrong===0?'전부 맞혔어요! 오늘도 해냈네요.':`제출 완료! ${wrong}문항은 선생님과 같이 다시 봐요. 끝까지 한 게 대단해요.`;
+  return `<div class="res"><div class="big">${r.ok}<small> / ${r.tot}</small></div><div class="ul"></div>${r.chk?`<div class="meta" style="margin-top:6px">선생님 확인 ${r.chk}문항</div>`:''}</div>
    <div class="msg">${msg}</div>
-   <div class="rl">${Object.entries(r.r).sort((a,b)=>a[0]-b[0]).map(([n,v])=>`<span class="${v}">${n}${v==='o'?' 맞음':v==='x'?' 틀림':' 확인'}</span>`).join('')}</div>
-   <div class="meta">정답은 보여주지 않아요. 틀린 문제는 선생님이 오답 노트로 다시 줘요.</div>
-   <button class="btn" data-act="home">숙제 목록으로</button>`;
+   <div class="rl">${Object.entries(r.r).sort((a,b)=>a[0]-b[0]).map(([n,v])=>`<span class="${v}" title="${v==='o'?'맞음':v==='x'?'다시 볼 문제':'선생님 확인'}">${n}</span>`).join('')}</div>
+   <div class="meta">연한 주황 칸은 다시 볼 문제예요. 정답은 보여주지 않고, 틀린 문제는 선생님이 오답 노트로 다시 줘요.</div>
+   <button class="btn" data-act="home" style="margin-top:6px">숙제 목록으로</button>`;
 }
 function sSaveSoon(){
   clearTimeout(St.saveT);
@@ -267,11 +314,13 @@ async function sAct(a,aid){
     catch(e){ toast(errMsg(e)); }
     return;
   }
-  if(a==='submit'){
-    clearTimeout(St.saveT);
-    const b=$('[data-act=submit]'); if(b) b.disabled=true;
+  if(a==='submit'){ St.confirm=true; return render(); }
+  if(a==='cancel'){ St.confirm=false; return render(); }
+  if(a==='dosubmit'){
+    St.confirm=false; clearTimeout(St.saveT);
+    const b=$('[data-act=dosubmit]'); if(b) b.disabled=true;
     try{ St.result=await must(sb.rpc('student_submit',{p_token:St.token,p_aid:St.aid,p_answers:St.w.answers,p_checked:St.w.checked})); St.screen='result'; await studentHome(); render(); }
-    catch(e){ toast(errMsg(e)); if(b) b.disabled=false; }
+    catch(e){ toast(errMsg(e)); render(); }
   }
 }
 
@@ -311,7 +360,7 @@ function tSub(a,sid){return Te.d.subs.find(x=>x.assignment_id===a.id&&x.student_
 function teacherHTML(){
   const tab=Te.tab;
   const tabs=[['hw','숙제'],['st','반과 학생'],['bk','교재'],['hs','이력']].concat(isAdmin()?[['sf','선생님']]:[]);
-  const nav=`<div class="top"><div class="brand">오늘도수학 숙제, ${isAdmin()?'관리자':'선생님'} ${esc(Te.me.name)}</div>
+  const nav=`<div class="top"><div class="brand"><i></i>오늘도수학 숙제 <small style="font-family:var(--font);font-size:13px;color:var(--muted)">${isAdmin()?'관리자':'선생님'} ${esc(Te.me.name)}</small></div>
    <div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}<button data-tab="ref">새로고침</button><button data-tab="out">로그아웃</button></div></div>`;
   if(Te.note) return nav+noteHTML();
   if(!Te.d) return nav+'<div class="meta">불러오는 중이에요...</div>';
