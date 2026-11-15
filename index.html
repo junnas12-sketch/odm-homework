@@ -127,6 +127,16 @@ tr.click{cursor:pointer}tr.click:hover{background:var(--accent-soft)}
   .phone{border:0;border-radius:0;min-height:100vh;max-width:none}
   .center{margin:24px 16px}
 }
+/* 학생 학습 이력 */
+.stb{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 12px;font-size:14px;margin:0 6px 6px 0}
+.stb small{color:var(--muted);margin-left:4px}
+.stb.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.stb.on small{color:var(--accent-fg);opacity:.75}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{border:1px solid var(--or-line);background:var(--or-soft);color:var(--or-text);border-radius:99px;padding:1px 9px;font-size:12px}
+.chips button.off{background:transparent;border-color:var(--line);color:var(--muted);text-decoration:line-through}
+.svrow td{vertical-align:top;white-space:normal}
+.svrow input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
 /* 그래프 */
 .ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .ctl .seg{display:flex;gap:6px;flex-wrap:wrap}
@@ -189,6 +199,7 @@ tr.click{cursor:pointer}tr.click:hover{background:var(--accent-soft)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -451,12 +462,12 @@ function tEff(a,sid){const o=Te.d.overrides.find(x=>x.assignment_id===a.id&&x.st
 function tSub(a,sid){return Te.d.subs.find(x=>x.assignment_id===a.id&&x.student_id===sid);}
 function teacherHTML(){
   const tab=Te.tab;
-  const tabs=[['hw','숙제'],['st','반과 학생'],['bk','교재'],['hs','이력']].concat(isAdmin()?[['sf','선생님']]:[]);
+  const tabs=[['hw','숙제'],['sv','학생'],['st','반과 학생'],['bk','교재'],['hs','이력']].concat(isAdmin()?[['sf','선생님']]:[]);
   const nav=`<div class="top"><div class="brand"><i></i>오늘도수학 숙제 <small style="font-family:var(--font);font-size:13px;color:var(--muted)">${isAdmin()?'관리자':'선생님'} ${esc(Te.me.name)}</small></div>
    <div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}<button data-tab="ref">새로고침</button><button data-tab="out">로그아웃</button></div></div>`;
   if(Te.note) return nav+noteHTML();
   if(!Te.d) return nav+'<div class="meta">불러오는 중이에요...</div>';
-  return nav+(tab==='hw'?tHw():tab==='st'?tSt():tab==='bk'?tBk():tab==='sf'&&isAdmin()?tSf():tHs());
+  return nav+(tab==='hw'?tHw():tab==='sv'?tSv():tab==='st'?tSt():tab==='bk'?tBk():tab==='sf'&&isAdmin()?tSf():tHs());
 }
 /* --- 숙제 --- */
 function tHw(){
@@ -520,63 +531,155 @@ async function loadGrade(a,sid){
 async function buildNote(a,sid){
   const g=Te.grade; const wrong=Object.keys(g.r).filter(n=>g.r[n]==='x').sort((x,y)=>x-y);
   if(!wrong.length){toast('틀린 문항이 없어요.');return;}
-  Te.busy=true; toast('오답 노트를 만드는 중이에요...');
-  const paths=[]; wrong.forEach(n=>{paths.push(`${a.book_id}/${n}.png`,`${a.book_id}/${n}_a.png`);});
-  const res=await sb.storage.from('problems').createSignedUrls(paths,3600);
-  const url={}; (res.data||[]).forEach(x=>{if(x.signedUrl)url[x.path]=x.signedUrl;});
-  const dims={};
-  await Promise.all(paths.map(p=>new Promise(done=>{ if(!url[p]) return done(); const im=new Image(); im.onload=()=>{dims[p]=[im.naturalWidth,im.naturalHeight];done();}; im.onerror=()=>done(); im.src=url[p]; })));
-  Te.note={a,sid,wrong,items:g.items,url,dims}; Te.busy=false; render();
+  const entries=wrong.map((num,i)=>({book_id:a.book_id,num:+num,title:a.title,tag:(g.items[num]||{}).tag||'',answer:(g.items[num]||{}).answer||'',newGroup:i===0}));
+  await openNote(entries,sName(sid));
 }
-/* 오늘도수학 합본 서식: A4, 머리글 보라 타원, 2단 가는 세로선, 한 쪽 4칸, 쪽번호, 뒤쪽 정답과 해설 */
-function noteHTML(){
-  const n=Te.note, a=n.a, name=sName(n.sid);
-  const PW=793.7, PH=1122.5, MX=53, MT=93, MB=61, GUT=24, CW=(PW-2*MX-GUT)/2, NUMW=35, S=0.48, SLOT=(PH-MT-MB)/2;
-  const colX=[MX, MX+CW+GUT];
-  const pages=[]; let cur=null;
-  const newPage=()=>{ cur=[]; pages.push(cur); return cur; };
-  const sz=(p,maxW,maxH)=>{ const d=n.dims[p]; if(!d) return null; let w=d[0]*S, h=d[1]*S; if(w>maxW){h*=maxW/w; w=maxW;} if(h>maxH){w*=maxH/h; h=maxH;} return {w,h}; };
-  // 문제 쪽
-  const used=new Set(); let slot=4; const order=[[0,0],[0,1],[1,0],[1,1]]; let first=true;
-  n.wrong.forEach((num,i)=>{
-    const p=`${a.book_id}/${num}.png`; const tag=(n.items[num]||{}).tag||'';
-    let box=sz(p,CW-NUMW,SLOT-46); let span2=false;
-    if(!box){ box={w:CW-NUMW,h:40}; }
-    const d=n.dims[p];
+async function openNote(entries,name){
+  Te.busy=true; toast('오답 노트를 만드는 중이에요...');
+  try{
+    const paths=[]; entries.forEach(e=>{paths.push(`${e.book_id}/${e.num}.png`,`${e.book_id}/${e.num}_a.png`);});
+    const url={};
+    for(let i=0;i<paths.length;i+=100){ const res=await sb.storage.from('problems').createSignedUrls(paths.slice(i,i+100),3600); (res.data||[]).forEach(x=>{if(x.signedUrl)url[x.path]=x.signedUrl;}); }
+    const dims={};
+    await Promise.all(paths.map(p=>new Promise(done=>{ if(!url[p]) return done(); const im=new Image(); im.onload=()=>{dims[p]=[im.naturalWidth,im.naturalHeight];done();}; im.onerror=()=>done(); im.src=url[p]; })));
+    Te.note={name,entries,url,dims};
+  }catch(e){ toast(errMsg(e)); }
+  Te.busy=false; render();
+}
+/* 오늘도수학 합본 서식 배치: A4, 보라 타원 머리글, 2단 가는 세로선, 한 쪽 4칸, 쪽번호, 뒤쪽 정답과 해설.
+   배치 결과를 명령 목록으로 만들어 화면(HTML)과 PDF(캔버스)가 똑같이 쓴다. 좌표는 96dpi 픽셀, y는 글자 윗선 */
+const NP={PW:793.7,PH:1122.5,MX:53,MT:93,MB:61,GUT:24,NUMW:35,S:0.48};
+function noteLayout(n){
+  const {PW,PH,MX,MT,MB,GUT,NUMW,S}=NP; const CW=(PW-2*MX-GUT)/2, SLOT=(PH-MT-MB)/2, colX=[MX,MX+CW+GUT];
+  const pages=[]; let cur=null; const newPage=()=>{cur=[];pages.push(cur);return cur;};
+  const sz=(p,maxW,maxH)=>{ const d=n.dims[p]; if(!d) return null; let w=d[0]*S,h=d[1]*S; if(w>maxW){h*=maxW/w;w=maxW;} if(h>maxH){w*=maxH/h;h=maxH;} return {w,h}; };
+  const used=new Set(); let slot=4; const order=[[0,0],[0,1],[1,0],[1,1]];
+  n.entries.forEach((e,i)=>{
+    const p=`${e.book_id}/${e.num}.png`; const tag=e.tag||'';
+    let box=sz(p,CW-NUMW,SLOT-46)||{w:CW-NUMW,h:40}; let span2=false; const d=n.dims[p];
     if(d && d[1]*S*Math.min(1,(CW-NUMW)/(d[0]*S))>SLOT-46){ span2=true; box=sz(p,CW-NUMW,2*SLOT-60); }
     while(true){
-      if(!cur || slot>=4){ newPage(); used.clear(); slot=0; }
+      if(!cur||slot>=4){ newPage(); used.clear(); slot=0; }
       const [c,r]=order[slot];
-      if(used.has(c+','+r)){ slot++; continue; }
-      if(span2 && (r===1 || used.has(c+',1'))){ slot++; continue; }
+      if(used.has(c+','+r)){slot++;continue;}
+      if(span2&&(r===1||used.has(c+',1'))){slot++;continue;}
       break;
     }
     const [c,r]=order[slot]; const x0=colX[c], y0=MT+r*SLOT;
-    if(first){ cur.push(`<div class="abs gl" style="left:${x0}px;top:${y0}px">[${esc(a.title)}]</div>`); first=false; }
-    cur.push(`<div class="abs sn" style="left:${x0}px;top:${y0+18}px">${i+1}.</div>`);
-    if(n.url[p]) cur.push(`<img src="${n.url[p]}" alt="${num}번 문제" style="left:${x0+NUMW}px;top:${y0+24}px;width:${box.w}px;height:${box.h}px">`);
-    else cur.push(`<div class="abs tg" style="left:${x0+NUMW}px;top:${y0+24}px">문제 이미지가 없어요</div>`);
-    cur.push(`<div class="abs tg" style="left:${x0+CW-6-tag.length*6.2}px;top:${y0+24+box.h+4}px">${esc(tag)}</div>`);
+    if(e.newGroup) cur.push({k:'t',x:x0,y:y0,s:`[${e.title}]`,fs:11.5,w:400,c:'#000'});
+    cur.push({k:'t',x:x0,y:y0+18,s:`${i+1}.`,fs:16,w:500,c:'#000'});
+    if(n.url[p]) cur.push({k:'i',src:n.url[p],x:x0+NUMW,y:y0+24,w:box.w,h:box.h});
+    else cur.push({k:'t',x:x0+NUMW,y:y0+24,s:'문제 이미지가 없어요',fs:10,w:400,c:'#666'});
+    cur.push({k:'t',x:x0+CW-6-tag.length*6.2,y:y0+24+box.h+4,s:tag,fs:10,w:400,c:'#666'});
     used.add(c+','+r); if(span2) used.add(c+',1'); slot++;
   });
-  // 정답 쪽
-  cur=newPage(); cur.push(`<div class="abs at" style="left:${MX}px;top:${MT+2}px">정답과 해설</div>`);
-  let col=0; const ys=[MT+40, MT]; const bottom=PH-MB;
-  n.wrong.forEach((num,i)=>{
-    const p=`${a.book_id}/${num}_a.png`;
+  cur=newPage(); cur.push({k:'t',x:MX,y:MT+2,s:'정답과 해설',fs:20,w:500,c:'#000'});
+  let col=0; const ys=[MT+40,MT]; const bottom=PH-MB;
+  n.entries.forEach((e,i)=>{
+    const p=`${e.book_id}/${e.num}_a.png`;
     const box=n.url[p]?sz(p,CW-NUMW,bottom-MT-30):null; const hgt=(box?box.h:34)+19;
     if(ys[col]+hgt>bottom){ if(col===0) col=1; else { cur=newPage(); col=0; ys[0]=MT; ys[1]=MT; } }
     const x0=colX[col];
-    cur.push(`<div class="abs sn" style="left:${x0}px;top:${ys[col]}px">${i+1}.</div>`);
-    if(box) cur.push(`<img src="${n.url[p]}" alt="${num}번 해설" style="left:${x0+NUMW}px;top:${ys[col]}px;width:${box.w}px;height:${box.h}px">`);
-    else cur.push(`<div class="abs tg" style="left:${x0+NUMW}px;top:${ys[col]+4}px;font-size:13px;color:#000">정답 ${esc((n.items[num]||{}).answer||'')}</div>`);
+    cur.push({k:'t',x:x0,y:ys[col],s:`${i+1}.`,fs:16,w:500,c:'#000'});
+    if(box) cur.push({k:'i',src:n.url[p],x:x0+NUMW,y:ys[col],w:box.w,h:box.h});
+    else cur.push({k:'t',x:x0+NUMW,y:ys[col]+3,s:`정답 ${e.answer||''}`,fs:13,w:400,c:'#000'});
     ys[col]+=hgt;
   });
-  const html=pages.map((items,pi)=>`<div class="np">
-    <div class="abs hp">오답 노트  ${esc(name)}</div><div class="abs ho">오늘도수학</div><div class="abs hl"></div><div class="abs dv"></div>
-    ${items.join('')}<div class="abs pn">${pi+1}</div></div>`).join('');
-  return `<div class="note-bar"><button class="btn sm" onclick="window.print()">인쇄하기 (양면 인쇄)</button><button class="btn sm line" id="nclose">돌아가기</button></div>
-   <div class="meta noteinfo" style="margin-bottom:10px">인쇄 창에서 용지 A4, 배율 100%, 여백 없음, 배경 그래픽 켜기로 설정하면 화면과 똑같이 나와요.</div>${html}`;
+  return pages;
+}
+function noteHTML(){
+  const n=Te.note; const pages=noteLayout(n);
+  const html=pages.map((cmds,pi)=>`<div class="np">
+    <div class="abs hp">오답 노트  ${esc(n.name)}</div><div class="abs ho">오늘도수학</div><div class="abs hl"></div><div class="abs dv"></div>
+    ${cmds.map(c=>c.k==='t'?`<div class="abs" style="left:${c.x}px;top:${c.y}px;font-size:${c.fs}px;font-weight:${c.w};color:${c.c};line-height:1;white-space:nowrap">${esc(c.s)}</div>`
+      :`<img src="${c.src}" alt="" style="left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px">`).join('')}
+    <div class="abs pn">${pi+1}</div></div>`).join('');
+  return `<div class="note-bar"><button class="btn sm" id="npdf">PDF로 만들기 (추천)</button><button class="btn sm line" onclick="window.print()">바로 인쇄</button><button class="btn sm line" id="nclose">돌아가기</button></div>
+   <div class="meta noteinfo" style="margin-bottom:10px">틀린 ${n.entries.length}문항, ${pages.length}쪽. 폰이나 태블릿에서는 "PDF로 만들기"로 저장해서 인쇄하면 A4에 정확히 맞아요.</div>${html}`;
+}
+function rr(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function drawNotePage(g,K,cmds,pi,name,bmp){
+  const {PW,PH,MX,MT,MB}=NP; g.setTransform(K,0,0,K,0,0); g.fillStyle='#fff'; g.fillRect(0,0,PW,PH); g.textBaseline='top';
+  const F=(w,fs)=>`${w} ${fs}px "Noto Sans KR", sans-serif`;
+  g.fillStyle='#b8aed6'; rr(g,53,32,253,29,14.5); g.fill();
+  g.fillStyle='#fff'; g.font=F(400,17); g.fillText('오답 노트  '+name,53+16,32+6);
+  g.strokeStyle='#b3b3b3'; g.lineWidth=0.7; rr(g,PW-53-109,36,109,22,11); g.stroke();
+  g.fillStyle='#595959'; g.font=F(400,11); g.textAlign='center'; g.fillText('오늘도수학',PW-53-109/2,36+5); g.textAlign='left';
+  g.strokeStyle='#d1d1d1'; g.beginPath(); g.moveTo(313,47); g.lineTo(PW-170,47); g.stroke();
+  g.strokeStyle='#cccccc'; g.beginPath(); g.moveTo(PW/2,87); g.lineTo(PW/2,PH-61); g.stroke();
+  cmds.forEach(c=>{ if(c.k==='t'){ g.fillStyle=c.c; g.font=F(c.w,c.fs); g.fillText(c.s,c.x,c.y); } else { const bm=bmp[c.src]; if(bm) g.drawImage(bm,c.x,c.y,c.w,c.h); } });
+  g.fillStyle='#737373'; g.font=F(400,11); g.textAlign='center'; g.fillText(String(pi+1),PW/2,PH-26-11); g.textAlign='left';
+}
+async function makeNotePdf(){
+  const n=Te.note; if(!n) return;
+  if(!window.jspdf){ toast('PDF 도구를 불러오지 못했어요. 새로고침하고 다시 눌러 주세요.'); return; }
+  const btn=$('#npdf'); if(btn) btn.disabled=true; toast('PDF를 만드는 중이에요. 잠시만 기다려 주세요...');
+  try{
+    try{ await document.fonts.load('400 16px "Noto Sans KR"'); await document.fonts.load('500 16px "Noto Sans KR"'); }catch(e){}
+    const pages=noteLayout(n); const K=2.4, W=Math.round(NP.PW*K), H=Math.round(NP.PH*K);
+    const urls=[...new Set(pages.flat().filter(c=>c.k==='i').map(c=>c.src))]; const bmp={};
+    await Promise.all(urls.map(async u=>{ const r=await fetch(u); if(!r.ok) throw new Error('이미지를 가져오지 못했어요'); bmp[u]=await createImageBitmap(await r.blob()); }));
+    const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    pages.forEach((cmds,pi)=>{ const cv=document.createElement('canvas'); cv.width=W; cv.height=H; drawNotePage(cv.getContext('2d'),K,cmds,pi,n.name,bmp); if(pi>0) doc.addPage(); doc.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297); });
+    doc.save(`오답노트_${n.name}.pdf`); toast('PDF를 저장했어요. 저장된 파일을 열어서 인쇄해 주세요.');
+  }catch(e){ toast('PDF를 만들지 못했어요: '+(e.message||e)+' (바로 인쇄를 눌러 보세요)'); }
+  if(btn) btn.disabled=false;
+}
+/* --- 학생 학습 이력: 학생을 찾아 한 화면에서 보고, 숙제를 여러 개 골라 오답을 이어서 한 노트로 --- */
+function svInit(){ return Te.sv||(Te.sv={sid:null,q:'',cls:'all',sel:{},excl:{}}); }
+function svRows(sid){
+  const d=Te.d, rows=[];
+  d.assignments.forEach(a=>{ if(!tTargets(a).includes(sid)) return; const sub=tSub(a,sid); const e=tEff(a,sid);
+    const done=!!(sub&&sub.done); const wrong=done?Object.keys(sub.result.r||{}).filter(n=>sub.result.r[n]==='x').map(Number).sort((x,y)=>x-y):[];
+    rows.push({a,e,done,sub,wrong}); });
+  return rows.sort((x,y)=>new Date(y.e.due)-new Date(x.e.due));
+}
+function svDefaultSel(sid){ const V=svInit(); V.sel={}; V.excl={}; svRows(sid).forEach(r=>{ if(r.wrong.length&&r.a.book_id) V.sel[r.a.id]=true; }); }
+function svListHTML(){
+  const d=Te.d, V=svInit(), q=V.q.trim();
+  const studs=d.students.filter(s=>(V.cls==='all'||s.class_id===V.cls)&&(!q||s.name.includes(q)));
+  return studs.map(s=>`<button class="stb ${V.sid===s.id?'on':''}" data-svs="${s.id}">${esc(s.name)}<small>${esc(cName(s.class_id))}</small></button>`).join('')||'<span class="meta">찾는 학생이 없어요.</span>';
+}
+function tSv(){
+  const d=Te.d, V=svInit();
+  const finder=`<div class="panel"><h2>학생 찾기<small>이름을 쓰거나 눌러서 고르세요</small></h2>
+    <div class="row"><div class="fld"><input id="svq" type="text" placeholder="이름으로 찾기" value="${esc(V.q)}" autocomplete="off"></div>
+    <div class="fld"><select id="svc" aria-label="반 선택"><option value="all">전체 반</option>${d.classes.map(c=>`<option value="${c.id}" ${V.cls===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div></div>
+    <div id="svlist">${svListHTML()}</div></div>`;
+  if(!V.sid||!d.students.some(s=>s.id===V.sid)) return `<div class="grid">${finder}<div class="panel"><div class="meta">학생을 고르면 그 학생의 학습 이력이 여기에 나와요.</div></div></div>`;
+  const s=d.students.find(x=>x.id===V.sid); const rows=svRows(V.sid);
+  const list=rows.map(r=>({due:r.e.due,done:r.done,ok:r.done?r.sub.result.ok:0,tot:r.done?r.sub.result.tot:0}));
+  const all=studentStat(list,'all'), mon=studentStat(list,'month');
+  let selA=0,selW=0;
+  const body=rows.map(r=>{
+    const can=r.wrong.length>0&&r.a.book_id; const on=!!V.sel[r.a.id]&&can;
+    const kept=r.wrong.filter(n=>!V.excl[r.a.id+'|'+n]);
+    if(on){ selA++; selW+=kept.length; }
+    const st=r.done?['제출 완료','ok']:(new Date(r.e.due).getTime()<Date.now()?['기한 지남','bad']:['해야 해요','warn']);
+    return `<tr class="svrow"><td><input type="checkbox" data-svsel="${r.a.id}" ${on?'checked':''} ${can?'':'disabled'} aria-label="${esc(r.a.title)} 선택"></td>
+      <td>${fmt(r.e.due)}</td><td>${esc(r.a.title)}${r.a.book_id?'':' <span class="pill bad">교재 정리됨</span>'}</td>
+      <td>${r.done?`${r.sub.result.ok} / ${r.sub.result.tot}`:`<span class="pill ${st[1]}">${st[0]}</span>`}</td>
+      <td>${r.wrong.length?`<div class="chips">${r.wrong.map(n=>`<button class="${V.excl[r.a.id+'|'+n]?'off':''}" data-svx="${r.a.id}|${n}" title="누르면 오답 노트에서 빼거나 다시 넣어요">${n}</button>`).join('')}</div>`:(r.done?'<span class="meta">없음</span>':'')}</td></tr>`;
+  }).join('');
+  const detail=`<div class="panel" style="grid-column:1/-1"><h2>${esc(s.name)}<small>${esc(cName(s.class_id))}</small></h2>
+    <div class="meta">전체 숙제 ${all.dn} / ${all.n}개 제출${all.tot?`, 정답률 ${Math.round(all.ok*100/all.tot)}%`:''}. 이번 달 ${mon.dn} / ${mon.n}개.</div>
+    <div class="tw"><table><thead><tr><th></th><th>마감</th><th>숙제</th><th>점수</th><th>틀린 문항 (눌러서 빼기)</th></tr></thead><tbody>${body||'<tr><td colspan="5">받은 숙제가 없어요.</td></tr>'}</tbody></table></div>
+    <div class="row" style="align-items:center"><button class="btn sm line" id="svall">틀린 문항 있는 숙제 모두 선택</button><button class="btn sm line" id="svnone">선택 해제</button>
+    <button class="btn sm" id="svnote" ${selW?'':'disabled'}>선택한 숙제 ${selA}개, 틀린 ${selW}문항으로 오답 노트 만들기</button></div>
+    <div class="meta">고른 숙제들의 틀린 문제가 숙제 순서대로 이어져서 한 노트로 나와요. 문제 번호 칩을 눌러 개별 문항을 뺄 수도 있어요.</div></div>`;
+  return `<div class="grid">${finder}${detail}</div>`;
+}
+async function svBuildNote(){
+  const V=svInit(), sid=V.sid; const rows=svRows(sid).filter(r=>V.sel[r.a.id]&&r.a.book_id&&r.wrong.length).sort((x,y)=>new Date(x.e.due)-new Date(y.e.due));
+  const byBook={}; rows.forEach(r=>{ r.wrong.forEach(n=>{ if(V.excl[r.a.id+'|'+n]) return; (byBook[r.a.book_id]=byBook[r.a.book_id]||new Set()).add(n); }); });
+  if(!Object.keys(byBook).length){ toast('선택한 숙제에 틀린 문항이 없어요.'); return; }
+  const meta={};
+  try{
+    for(const b of Object.keys(byBook)){ const its=await must(sb.from('items').select('num,tag,answer').eq('book_id',b).in('num',[...byBook[b]])); its.forEach(i=>meta[b+'|'+i.num]=i); }
+  }catch(e){ toast(errMsg(e)); return; }
+  const entries=[];
+  rows.forEach(r=>{ let first=true; r.wrong.forEach(n=>{ if(V.excl[r.a.id+'|'+n]) return; const m=meta[r.a.book_id+'|'+n]||{}; entries.push({book_id:r.a.book_id,num:n,title:r.a.title,tag:m.tag||'',answer:m.answer||'',newGroup:first}); first=false; }); });
+  await openNote(entries, sName(sid));
 }
 /* --- 반과 학생 --- */
 function tSt(){
@@ -590,7 +693,7 @@ function tSt(){
     <div class="fld">학생 목록 (예: 김하늘 1234)<textarea id="sl" placeholder="김하늘 1234&#10;이도윤 5678"></textarea></div>
     <div class="meta">번호는 숫자 4~6자리예요. 이름은 학생이 로그인할 때 쓰니 같은 이름이 있으면 구분되게 적어 주세요. (예: 김하늘A)</div>
     <button class="btn" id="sadd">학생 추가</button><div class="meta" id="smsg"></div></div>
-   <div class="panel"><h2>학생 목록</h2><div class="tw"><table><thead><tr><th>반</th><th>이름</th><th></th></tr></thead><tbody>${d.students.map(s=>`<tr><td>${esc(cName(s.class_id))}</td><td>${esc(s.name)}</td><td><button class="btn sm line" data-pin="${s.id}">번호 바꾸기</button> <button class="btn sm line" data-sdel="${s.id}">지우기</button></td></tr>`).join('')||'<tr><td colspan="3">등록된 학생이 없어요.</td></tr>'}</tbody></table></div></div></div>`;
+   <div class="panel"><h2>학생 목록</h2><div class="tw"><table><thead><tr><th>반</th><th>이름</th><th></th></tr></thead><tbody>${d.students.map(s=>`<tr><td>${esc(cName(s.class_id))}</td><td><button class="btn sm line" data-svopen="${s.id}">${esc(s.name)}</button></td><td><button class="btn sm line" data-pin="${s.id}">번호 바꾸기</button> <button class="btn sm line" data-sdel="${s.id}">지우기</button></td></tr>`).join('')||'<tr><td colspan="3">등록된 학생이 없어요.</td></tr>'}</tbody></table></div></div></div>`;
 }
 /* --- 선생님 관리 (관리자) --- */
 function tSf(){
@@ -750,6 +853,19 @@ function bind(){
     try{await must(sb.rpc('admin_delete_staff',{p_staff:b.dataset.sfdel}));await teacherLoad();render();toast('지웠어요. 이 사람은 더 이상 로그인해도 쓸 수 없어요.');}catch(e){toast(errMsg(e));}});
   $$('[data-per]').forEach(b=>b.onclick=()=>{ (Te.hs||(Te.hs={per:'month',cls:'all'})).per=b.dataset.per; render(); });
   const hc=$('#hcls'); if(hc) hc.onchange=()=>{ (Te.hs||(Te.hs={per:'month',cls:'all'})).cls=hc.value; render(); };
+  const vPdf=$('#npdf'); if(vPdf) vPdf.onclick=makeNotePdf;
+  $$('[data-svopen]').forEach(b=>b.onclick=()=>{ const V=svInit(); V.sid=b.dataset.svopen; svDefaultSel(V.sid); Te.tab='sv'; render(); });
+  const vQ=$('#svq'); if(vQ){
+    const bindList=()=>$$('[data-svs]').forEach(b=>b.onclick=()=>{ const V=svInit(); V.sid=b.dataset.svs; svDefaultSel(V.sid); render(); });
+    bindList();
+    vQ.oninput=()=>{ svInit().q=vQ.value; const l=$('#svlist'); if(l){ l.innerHTML=svListHTML(); bindList(); } };
+    const vC=$('#svc'); vC.onchange=()=>{ svInit().cls=vC.value; const l=$('#svlist'); if(l){ l.innerHTML=svListHTML(); bindList(); } };
+  }
+  $$('[data-svsel]').forEach(c=>c.onchange=()=>{ const V=svInit(); if(c.checked) V.sel[c.dataset.svsel]=true; else delete V.sel[c.dataset.svsel]; render(); });
+  $$('[data-svx]').forEach(b=>b.onclick=()=>{ const V=svInit(); const k=b.dataset.svx; if(V.excl[k]) delete V.excl[k]; else V.excl[k]=true; render(); });
+  const vAll=$('#svall'); if(vAll) vAll.onclick=()=>{ const V=svInit(); svDefaultSel(V.sid); render(); };
+  const vNone=$('#svnone'); if(vNone) vNone.onclick=()=>{ const V=svInit(); V.sel={}; render(); };
+  const vNote=$('#svnote'); if(vNote) vNote.onclick=svBuildNote;
   const nc=$('#nclose'); if(nc) nc.onclick=()=>{Te.note=null;render();};
   const mk=$('#mk'); if(mk) mk.onclick=newHw;
   $$('[data-open]').forEach(r=>r.onclick=()=>{Te.aid=r.dataset.open;Te.sid=null;Te.grade=null;render();});
