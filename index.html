@@ -70,6 +70,11 @@ input,select,textarea{font:inherit;color:inherit}
 .sr.chkr{cursor:pointer}
 .sr.chkr span.t{flex:1;font-size:13px;color:var(--muted)}
 .sr.chkr input{width:20px;height:20px;accent-color:var(--accent)}
+.sr.multi{align-items:flex-start}
+.mi{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.mrow{display:flex;align-items:center;gap:8px}
+.mrow .ml{font-size:12px;color:var(--muted);min-width:38px;max-width:110px;line-height:1.25}
+.mrow input[type=text]{flex:1;min-width:0;border:0;border-bottom:1.5px solid var(--accent);border-radius:0;background:transparent;padding:5px 2px;font-size:16px}
 .keys{display:flex;flex-wrap:wrap;gap:6px;padding:0 2px}
 .keys button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:5px 11px;font-size:14px}
 .pager{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);padding:0 4px}
@@ -209,6 +214,34 @@ if(!window.ODM || /여기에/.test(ODM.url)){
 const sb = supabase.createClient(ODM.url, ODM.key);
 
 const GRADED = t => t==='객관식' || t==='단답';
+const isAuto = it => GRADED(it.type) || (it.type==='복수답' && !!it.parts);
+/* 복수답 정답 문자열을 칸 목록으로 나눔 (서버에 저장된 방식과 같은 규칙) */
+const UNIT_RE = '(?:m/s²|m/s|cm³|cm²/s|cm²|cm|kg|m|원)';
+function parseParts(ans){
+  ans=String(ans||'').trim(); let groups;
+  if(/\(\d+\)/.test(ans)){
+    const pieces=ans.split(/(\(\d+\))/); groups=[];
+    if(pieces[0].trim()) return null;
+    for(let i=1;i<pieces.length;i+=2) groups.push([pieces[i],(pieces[i+1]||'').trim()]);
+  } else groups=[['',ans]];
+  const parts=[]; const unitEnd=new RegExp(UNIT_RE+'$'); const hangul=/[가-힣]/;
+  for(const [g,text] of groups){
+    const subs=text.split(/\s*,\s+|\s{2,}/).map(x=>x.trim()).filter(Boolean); if(!subs.length) return null;
+    for(const sp of subs){
+      let lab='',val=sp;
+      if(hangul.test(sp.replace(unitEnd,''))){
+        const m=sp.match(new RegExp('^(.*?)\\s+(\\S+(?:\\s+'+UNIT_RE+')?)$')); if(!m) return null;
+        lab=m[1].trim(); val=m[2].trim();
+        if(hangul.test(val.replace(unitEnd,'')) && val!=='없음') return null;
+      }
+      parts.push({label:(g+' '+lab).trim(),value:val});
+    }
+  }
+  if(parts.length<2) return null;
+  if(/또는|○|×/.test(ans)) return null;
+  for(const p of parts){ const v=p.value; if((v.match(/\(/g)||[]).length!==(v.match(/\)/g)||[]).length || /^[\/\-−]+$/.test(v) || v==='') return null; }
+  return parts;
+}
 let mode = null;               // 'student' | 'teacher' | null
 const A = {login:'student', tmode:'in'};   // 로그인 화면 탭
 // 학생 상태
@@ -304,8 +337,8 @@ function myRecord(){
 }
 function isToday(ts){const f=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(d);return f(new Date(new Date(ts).getTime()-1000))===f(new Date());}
 function confirmHTML(){
-  const w=St.w; const ans=w.items.filter(q=>q.type==='객관식'||q.type==='단답'); const filled=ans.filter(q=>(w.answers[q.num]||'')!=='').length;
-  const chk=w.items.filter(q=>!(q.type==='객관식'||q.type==='단답')); const chked=chk.filter(q=>w.checked[q.num]).length;
+  const w=St.w; const ans=w.items.filter(q=>isAuto(q)); const filled=ans.filter(q=>q.type==='복수답'?(Array.isArray(w.answers[q.num])&&w.answers[q.num].length>=q.parts.length&&q.parts.every((_,i)=>(w.answers[q.num][i]||'')!=='')):((w.answers[q.num]||'')!=='')).length;
+  const chk=w.items.filter(q=>!isAuto(q)); const chked=chk.filter(q=>w.checked[q.num]).length;
   return `<div class="cover"><div class="sheetup"><h3>제출할까요?</h3>
    <div class="meta">제출하면 답을 고칠 수 없어요.</div>
    <div class="meta">답을 쓴 문항 ${filled} / ${ans.length}${chk.length?`, 풀었다고 체크한 문항 ${chked} / ${chk.length}`:''}</div>
@@ -323,6 +356,8 @@ function sWork(){
   const rows=cur.map(q=>{
     if(q.type==='객관식') return `<div class="sr"><span class="qn">${q.num}</span><div class="om">${[1,2,3,4,5].map(i=>`<button data-ch="${q.num}" data-v="${i}" aria-label="${q.num}번 ${i}" aria-pressed="${w.answers[q.num]==i}">${i}</button>`).join('')}</div></div>`;
     if(q.type==='단답') return `<div class="sr"><span class="qn">${q.num}</span><input type="text" data-in="${q.num}" value="${esc(w.answers[q.num]||'')}" placeholder="답을 적어요" autocomplete="off" autocapitalize="off" aria-label="${q.num}번 답"></div>`;
+    if(q.type==='복수답' && q.parts){ const arr=Array.isArray(w.answers[q.num])?w.answers[q.num]:[];
+      return `<div class="sr multi"><span class="qn">${q.num}</span><div class="mi">${q.parts.map((p,i)=>`<label class="mrow"><span class="ml">${esc(p.label||String(i+1))}</span><input type="text" data-mi="${q.num}" data-pi="${i}" value="${esc(arr[i]||'')}" placeholder="답" autocomplete="off" autocapitalize="off" aria-label="${q.num}번 ${esc(p.label||String(i+1))}"></label>`).join('')}</div></div>`; }
     return `<label class="sr chkr"><span class="qn">${q.num}</span><span class="t">풀었어요. 선생님이 확인해 줄게요</span><input type="checkbox" data-ck="${q.num}" ${w.checked[q.num]?'checked':''}></label>`;
   }).join('');
   const keys=['−','/','√','π','^','≤','≥','(',')'].map(k=>`<button data-key="${k}" type="button">${k}</button>`).join('');
@@ -348,6 +383,11 @@ function sResult(){
    <div class="msg">${resultMsg(r)}</div>
    <div class="rl">${Object.entries(r.r).sort((a,b)=>a[0]-b[0]).map(([n,v])=>`<span class="${v}" title="${v==='o'?'맞음':v==='x'?'다시 볼 문제':'선생님 확인'}">${n}</span>`).join('')}</div>
    <button class="btn" data-act="home" style="margin-top:6px">숙제 목록으로</button>`;
+}
+function syncInput(i){
+  if(i.dataset.mi!==undefined){ const n=i.dataset.mi; const arr=Array.isArray(St.w.answers[n])?St.w.answers[n].slice():[]; arr[+i.dataset.pi]=i.value; St.w.answers[n]=arr; }
+  else St.w.answers[i.dataset.in]=i.value;
+  sSaveSoon();
 }
 function sSaveSoon(){
   clearTimeout(St.saveT);
@@ -458,7 +498,7 @@ function tStudentPanel(a,sid){
   const g=Te.grade; if(!g||g.key!==a.id+'|'+sid) return `<div class="meta">채점 내용을 불러오는 중이에요...</div>`;
   const rows=Object.keys(g.r).sort((x,y)=>x-y).map(n=>{const it=g.items[n]||{}; const v=g.r[n];
     const lab=v==='o'?'맞음':v==='x'?'틀림':'확인 필요', cl=v==='o'?'ok':v==='x'?'bad':'warn';
-    const given=GRADED(it.type)?(g.answers[n]||'비워 둠'):(g.checked[n]?'풀었다고 체크':'체크 안 함');
+    const raw=g.answers[n]; const given=isAuto(it)?(Array.isArray(raw)?(raw.some(x=>x)?raw.map(x=>x||'비움').join(' / '):'비워 둠'):(raw||'비워 둠')):(g.checked[n]?'풀었다고 체크':'체크 안 함');
     return `<div class="r"><b>${n}</b><span>${esc(given)}<br><span class="meta">정답 ${esc(it.answer)} (${esc(it.tag||'')})</span></span><span><button class="pill ${cl}" data-ov="${n}">${lab}</button>${g.ov[n]?' <span class="meta">수정</span>':''}</span></div>`;}).join('');
   const sc=countR(g.r);
   return `<h2 style="margin-top:6px">${esc(sName(sid))} 채점 확인<small>${sc.ok} / ${sc.tot}${sc.chk?`, 확인 필요 ${sc.chk}`:''}</small></h2>
@@ -470,7 +510,7 @@ function countR(r){let ok=0,tot=0,chk=0;Object.values(r).forEach(v=>{if(v==='c')
 async function loadGrade(a,sid){
   const e=tEff(a,sid); const s=tSub(a,sid);
   const full=await must(sb.from('submissions').select('answers,checked,ov,result').eq('assignment_id',a.id).eq('student_id',sid).single());
-  const its=await must(sb.from('items').select('num,tag,type,answer').eq('book_id',a.book_id).gte('num',e.from).lte('num',e.to));
+  const its=await must(sb.from('items').select('num,tag,type,answer,parts').eq('book_id',a.book_id).gte('num',e.from).lte('num',e.to));
   const items={}; its.forEach(i=>items[i.num]=i);
   Te.grade={key:a.id+'|'+sid,r:{...full.result.r},answers:full.answers,checked:full.checked,ov:full.ov||{},items};
 }
@@ -598,7 +638,7 @@ async function uploadBook(){
     const h=rows[hi].map(c=>String(c).trim()), ci=k=>h.indexOf(k), items={};
     rows.slice(hi+1).forEach(r=>{const n=parseInt(r[ci('번호')]); if(!n)return; const ans=String(r[ci('정답')]??'').trim();
       let type=ci('유형')>=0?String(r[ci('유형')]||'').trim():''; if(!type) type=/^[①②③④⑤]$/.test(ans)?'객관식':'단답';
-      items[n]={num:n,tag:ci('출처코드')>=0?String(r[ci('출처코드')]||'').replace(/^-/,''):'',type,answer:ans};});
+      items[n]={num:n,tag:ci('출처코드')>=0?String(r[ci('출처코드')]||'').replace(/^-/,''):'',type,answer:ans,parts:type==='복수답'?parseParts(ans):null};});
     const nums=Object.keys(items).map(Number); if(!nums.length){say('문항을 한 개도 못 읽었어요.');$('#bgo').disabled=false;return;}
     say('이미지 묶음을 읽는 중이에요...');
     const z=await JSZip.loadAsync(await fz.arrayBuffer()); const prob={}, sol={};
@@ -607,7 +647,7 @@ async function uploadBook(){
     if(miss.length||extra.length){say(`번호가 서로 맞지 않아 올리지 않았어요. 이미지가 없는 번호: ${miss.slice(0,15).join(', ')||'없음'} / 정답표에 없는 이미지 번호: ${extra.slice(0,15).join(', ')||'없음'}`);$('#bgo').disabled=false;return;}
     const book=(await must(sb.from('books').insert({name}).select().single()));
     const total=nums.length; let done=0;
-    await must(sb.from('items').insert(nums.map(n=>({book_id:book.id,num:n,tag:items[n].tag,type:items[n].type,answer:items[n].answer}))));
+    await must(sb.from('items').insert(nums.map(n=>({book_id:book.id,num:n,tag:items[n].tag,type:items[n].type,answer:items[n].answer,parts:items[n].parts||null}))));
     const jobs=[]; nums.forEach(n=>{jobs.push(['p',n]); if(sol[n]) jobs.push(['s',n]);});
     let idx=0;
     const worker=async()=>{ while(idx<jobs.length){ const [k,n]=jobs[idx++]; const f=(k==='p'?prob:sol)[n]; const blob=await f.async('blob');
@@ -690,10 +730,10 @@ function bind(){
   // 학생
   $$('[data-act]').forEach(b=>b.onclick=()=>sAct(b.dataset.act,b.dataset.aid));
   $$('[data-ch]').forEach(b=>b.onclick=()=>{St.w.answers[b.dataset.ch]=b.dataset.v;sSaveSoon();render();});
-  $$('[data-in]').forEach(i=>{i.onfocus=()=>{St.last=i;};i.oninput=()=>{St.w.answers[i.dataset.in]=i.value;sSaveSoon();};});
+  $$('[data-in],[data-mi]').forEach(i=>{i.onfocus=()=>{St.last=i;};i.oninput=()=>syncInput(i);});
   $$('[data-ck]').forEach(i=>i.onchange=()=>{St.w.checked[i.dataset.ck]=i.checked;sSaveSoon();});
-  $$('[data-key]').forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>{const i=St.last&&document.body.contains(St.last)?St.last:$('[data-in]'); if(!i)return;
-    const p=i.selectionStart??i.value.length; i.value=i.value.slice(0,p)+b.dataset.key+i.value.slice(p); i.focus(); i.setSelectionRange(p+1,p+1); St.w.answers[i.dataset.in]=i.value; sSaveSoon();};});
+  $$('[data-key]').forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>{const i=St.last&&document.body.contains(St.last)?St.last:$('[data-in],[data-mi]'); if(!i)return;
+    const p=i.selectionStart??i.value.length; i.value=i.value.slice(0,p)+b.dataset.key+i.value.slice(p); i.focus(); i.setSelectionRange(p+1,p+1); syncInput(i);};});
   // 선생님
   $$('[data-tab]').forEach(b=>b.onclick=async()=>{ if(b.dataset.tab==='ref'){ await refreshTeacher(true); return; } if(b.dataset.tab==='out'){await sb.auth.signOut();mode=null;Te.d=null;Te.me=null;render();return;} Te.tab=b.dataset.tab;Te.note=null;render();});
   const cg=$('#cgo'); if(cg) cg.onclick=async()=>{const e=$('#lerr');e.textContent='';try{await must(sb.rpc('claim_staff',{p_code:$('#cc').value}));await teacherLoad();render();}catch(x){e.textContent=errMsg(x);}};
