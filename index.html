@@ -122,7 +122,41 @@ tr.click{cursor:pointer}tr.click:hover{background:var(--accent-soft)}
   .phone{border:0;border-radius:0;min-height:100vh;max-width:none}
   .center{margin:24px 16px}
 }
-/* 오답 노트 인쇄 */
+/* 그래프 */
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl .seg{display:flex;gap:6px;flex-wrap:wrap}
+.ctl .seg button{border:1px solid var(--line);background:var(--card);padding:6px 12px;border-radius:99px;font-size:13px;color:var(--muted)}
+.ctl .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.ctl select{width:auto;padding:6px 10px;font-size:14px}
+.hb{display:grid;grid-template-columns:72px 1fr 92px;gap:8px;align-items:center;padding:5px 0;font-size:13px}
+.hb .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb .tr{position:relative;height:16px;background:var(--line2);border-radius:8px;overflow:hidden}
+.hb .tr i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:8px}
+.hb .tr2{height:5px;background:var(--line2);border-radius:3px;margin-top:3px;overflow:hidden}
+.hb .tr2 i{display:block;height:5px;background:var(--orange)}
+.hb .vl{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.hg{font-size:12px;color:var(--muted);padding:4px 0 2px;display:flex;gap:14px;align-items:center}
+.hg b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.cols{display:flex;align-items:flex-end;gap:8px;height:150px;padding:6px 2px 0}
+.cols .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.cols .c span.v{font-size:11px;color:var(--muted);margin-bottom:3px}
+.cols .c i{display:block;width:100%;max-width:34px;background:var(--accent);border-radius:6px 6px 2px 2px;min-height:3px}
+.cols .c i.cur{background:var(--orange)}
+.cols .c span.w{font-size:11px;color:var(--muted);margin-top:5px;white-space:nowrap}
+/* 오답 노트 (오늘도수학 합본 서식) */
+.np{position:relative;width:793.7px;height:1122.5px;background:#fff;color:#000;margin:0 auto 18px;border:1px solid #d6d4dc;overflow:hidden;font-family:'Noto Sans KR',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.np .abs{position:absolute}
+.np .hp{left:53px;top:32px;width:253px;height:29px;border-radius:15px;background:#b8aed6;color:#fff;font-size:17px;line-height:29px;padding-left:16px;white-space:nowrap}
+.np .ho{right:53px;top:36px;width:109px;height:22px;border:0.7px solid #b3b3b3;border-radius:12px;color:#595959;font-size:11px;line-height:21px;text-align:center}
+.np .hl{left:313px;right:170px;top:47px;border-top:0.7px solid #d1d1d1}
+.np .dv{left:396.8px;top:87px;bottom:61px;border-left:0.7px solid #cccccc}
+.np .pn{left:0;right:0;bottom:26px;text-align:center;font-size:11px;color:#737373}
+.np .gl{font-size:11.5px}
+.np .sn{font-size:16px;font-weight:500}
+.np .sn.big{font-size:14px}
+.np .tg{font-size:10px;color:#666;white-space:nowrap}
+.np .at{font-size:20px;font-weight:500}
+.np img{position:absolute;display:block}
 .note-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .note-page{background:#fff;color:#000;padding:0}
 .note-h{font-weight:700;font-size:15px;border-bottom:1px solid #999;padding-bottom:4px;margin-bottom:8px}
@@ -133,10 +167,11 @@ tr.click{cursor:pointer}tr.click:hover{background:var(--accent-soft)}
 .note-q .tg{font-size:9px;color:#666;text-align:right}
 .note-sec{break-before:page;margin-top:0}
 @media print{
-  @page{size:A4;margin:12mm}
+  @page{size:A4;margin:0}
   body{background:#fff;padding:0}
   .wrap>.top,.note-bar,.toast{display:none!important}
   .wrap{padding:0;max-width:none}
+  .np{margin:0;border:0;page-break-after:always;break-after:page}
 }
 </style>
 </head>
@@ -255,7 +290,17 @@ function sHome(){
     return `<div class="hw ${past?'past':''}"><div class="hrow"><h3>${esc(a.title)}</h3>${pill}</div>
       <div class="meta">마감 ${fmt(a.due)}${a.extended?' (미룸)':''}</div>${act}</div>`;
   }).join('');
-  return `<div class="who">${esc(St.cls)} ${esc(St.name)} 학생</div><div class="ptitle">오늘의 숙제</div>${cards||'<div class="meta" style="padding:8px 4px">받은 숙제가 없어요.</div>'}<button class="btn sm line" id="lout" style="align-self:center;margin-top:8px">로그아웃</button>`;
+  const my=myRecord();
+  return `<div class="who">${esc(St.cls)} ${esc(St.name)} 학생</div><div class="ptitle">오늘의 숙제</div>${cards||'<div class="meta" style="padding:8px 4px">받은 숙제가 없어요.</div>'}${my}<button class="btn sm line" id="lout" style="align-self:center;margin-top:8px">로그아웃</button>`;
+}
+function myRecord(){
+  const h=St.home; if(!h) return '';
+  const list=h.assignments.map(a=>({due:a.due,done:a.done,ok:a.done&&a.result?a.result.ok:0,tot:a.done&&a.result?a.result.tot:0}));
+  const m=studentStat(list,'month'), all=studentStat(list,'all'); const wk=weeklyCols(list,6);
+  if(!all.n) return '';
+  const c=m.n?Math.round(m.dn*100/m.n):0, r=all.tot?Math.round(all.ok*100/all.tot):0;
+  return `<div class="hw"><div class="hrow"><h3>나의 기록</h3><span class="pill">이번 달 ${c}%</span></div>
+   <div class="meta">이번 달 숙제 ${m.dn} / ${m.n}개 제출${all.tot?`, 전체 정답률 ${r}%`:''}</div>${colsHTML(wk)}<div class="meta" style="font-size:11px">주별 제출 비율, 주황은 이번 주예요.</div></div>`;
 }
 function isToday(ts){const f=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(d);return f(new Date(new Date(ts).getTime()-1000))===f(new Date());}
 function confirmHTML(){
@@ -437,15 +482,59 @@ async function buildNote(a,sid){
   const paths=[]; wrong.forEach(n=>{paths.push(`${a.book_id}/${n}.png`,`${a.book_id}/${n}_a.png`);});
   const res=await sb.storage.from('problems').createSignedUrls(paths,3600);
   const url={}; (res.data||[]).forEach(x=>{if(x.signedUrl)url[x.path]=x.signedUrl;});
-  Te.note={a,sid,wrong,items:g.items,url}; Te.busy=false; render();
+  const dims={};
+  await Promise.all(paths.map(p=>new Promise(done=>{ if(!url[p]) return done(); const im=new Image(); im.onload=()=>{dims[p]=[im.naturalWidth,im.naturalHeight];done();}; im.onerror=()=>done(); im.src=url[p]; })));
+  Te.note={a,sid,wrong,items:g.items,url,dims}; Te.busy=false; render();
 }
+/* 오늘도수학 합본 서식: A4, 머리글 보라 타원, 2단 가는 세로선, 한 쪽 4칸, 쪽번호, 뒤쪽 정답과 해설 */
 function noteHTML(){
-  const n=Te.note, a=n.a;
-  const q=n.wrong.map((x,i)=>`<div class="note-q"><b>${i+1}.</b>${n.url[`${a.book_id}/${x}.png`]?`<img src="${n.url[`${a.book_id}/${x}.png`]}" alt="${x}번 문제">`:'<div class="meta">문제 이미지가 없어요</div>'}<div class="tg">${esc((n.items[x]||{}).tag||'')}</div></div>`).join('');
-  const s=n.wrong.map((x,i)=>n.url[`${a.book_id}/${x}_a.png`]?`<div class="note-q"><b>${i+1}.</b><img src="${n.url[`${a.book_id}/${x}_a.png`]}" alt="${x}번 해설"></div>`:`<div class="note-q"><b>${i+1}.</b> 정답 ${esc((n.items[x]||{}).answer||'')}</div>`).join('');
-  return `<div class="note-bar"><button class="btn sm" onclick="window.print()">인쇄하기 (양면 인쇄로 설정하세요)</button><button class="btn sm line" id="nclose">돌아가기</button></div>
-   <div class="note-page"><div class="note-h">오늘도수학 오답 노트  ${esc(sName(n.sid))}  ${esc(a.book_name)}  틀린 ${n.wrong.length}문항</div><div class="note-cols">${q}</div>
-   <div class="note-sec"><div class="note-h">정답과 해설  ${esc(sName(n.sid))}</div><div class="note-cols">${s}</div></div></div>`;
+  const n=Te.note, a=n.a, name=sName(n.sid);
+  const PW=793.7, PH=1122.5, MX=53, MT=93, MB=61, GUT=24, CW=(PW-2*MX-GUT)/2, NUMW=35, S=0.48, SLOT=(PH-MT-MB)/2;
+  const colX=[MX, MX+CW+GUT];
+  const pages=[]; let cur=null;
+  const newPage=()=>{ cur=[]; pages.push(cur); return cur; };
+  const sz=(p,maxW,maxH)=>{ const d=n.dims[p]; if(!d) return null; let w=d[0]*S, h=d[1]*S; if(w>maxW){h*=maxW/w; w=maxW;} if(h>maxH){w*=maxH/h; h=maxH;} return {w,h}; };
+  // 문제 쪽
+  const used=new Set(); let slot=4; const order=[[0,0],[0,1],[1,0],[1,1]]; let first=true;
+  n.wrong.forEach((num,i)=>{
+    const p=`${a.book_id}/${num}.png`; const tag=(n.items[num]||{}).tag||'';
+    let box=sz(p,CW-NUMW,SLOT-46); let span2=false;
+    if(!box){ box={w:CW-NUMW,h:40}; }
+    const d=n.dims[p];
+    if(d && d[1]*S*Math.min(1,(CW-NUMW)/(d[0]*S))>SLOT-46){ span2=true; box=sz(p,CW-NUMW,2*SLOT-60); }
+    while(true){
+      if(!cur || slot>=4){ newPage(); used.clear(); slot=0; }
+      const [c,r]=order[slot];
+      if(used.has(c+','+r)){ slot++; continue; }
+      if(span2 && (r===1 || used.has(c+',1'))){ slot++; continue; }
+      break;
+    }
+    const [c,r]=order[slot]; const x0=colX[c], y0=MT+r*SLOT;
+    if(first){ cur.push(`<div class="abs gl" style="left:${x0}px;top:${y0}px">[${esc(a.title)}]</div>`); first=false; }
+    cur.push(`<div class="abs sn" style="left:${x0}px;top:${y0+18}px">${i+1}.</div>`);
+    if(n.url[p]) cur.push(`<img src="${n.url[p]}" alt="${num}번 문제" style="left:${x0+NUMW}px;top:${y0+24}px;width:${box.w}px;height:${box.h}px">`);
+    else cur.push(`<div class="abs tg" style="left:${x0+NUMW}px;top:${y0+24}px">문제 이미지가 없어요</div>`);
+    cur.push(`<div class="abs tg" style="left:${x0+CW-6-tag.length*6.2}px;top:${y0+24+box.h+4}px">${esc(tag)}</div>`);
+    used.add(c+','+r); if(span2) used.add(c+',1'); slot++;
+  });
+  // 정답 쪽
+  cur=newPage(); cur.push(`<div class="abs at" style="left:${MX}px;top:${MT+2}px">정답과 해설</div>`);
+  let col=0; const ys=[MT+40, MT]; const bottom=PH-MB;
+  n.wrong.forEach((num,i)=>{
+    const p=`${a.book_id}/${num}_a.png`;
+    const box=n.url[p]?sz(p,CW-NUMW,bottom-MT-30):null; const hgt=(box?box.h:34)+19;
+    if(ys[col]+hgt>bottom){ if(col===0) col=1; else { cur=newPage(); col=0; ys[0]=MT; ys[1]=MT; } }
+    const x0=colX[col];
+    cur.push(`<div class="abs sn" style="left:${x0}px;top:${ys[col]}px">${i+1}.</div>`);
+    if(box) cur.push(`<img src="${n.url[p]}" alt="${num}번 해설" style="left:${x0+NUMW}px;top:${ys[col]}px;width:${box.w}px;height:${box.h}px">`);
+    else cur.push(`<div class="abs tg" style="left:${x0+NUMW}px;top:${ys[col]+4}px;font-size:13px;color:#000">정답 ${esc((n.items[num]||{}).answer||'')}</div>`);
+    ys[col]+=hgt;
+  });
+  const html=pages.map((items,pi)=>`<div class="np">
+    <div class="abs hp">오답 노트  ${esc(name)}</div><div class="abs ho">오늘도수학</div><div class="abs hl"></div><div class="abs dv"></div>
+    ${items.join('')}<div class="abs pn">${pi+1}</div></div>`).join('');
+  return `<div class="note-bar"><button class="btn sm" onclick="window.print()">인쇄하기 (양면 인쇄)</button><button class="btn sm line" id="nclose">돌아가기</button></div>
+   <div class="meta" class="note-bar" style="margin-bottom:10px">인쇄 창에서 용지 A4, 배율 100%, 여백 없음, 배경 그래픽 켜기로 설정하면 화면과 똑같이 나와요.</div>${html}`;
 }
 /* --- 반과 학생 --- */
 function tSt(){
@@ -539,16 +628,56 @@ async function removeBook(id){
   }catch(e){ toast(errMsg(e)); }
 }
 /* --- 이력 --- */
+/* 완수율과 정답률 계산 도우미 */
+function seoulDate(ts){ return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date(ts)); }
+function weekKey(ts){ const d=new Date(seoulDate(new Date(ts).getTime()-1000)+'T00:00:00Z'); const dow=(d.getUTCDay()+6)%7; d.setUTCDate(d.getUTCDate()-dow); return d.toISOString().slice(0,10); }
+function periodStart(per){
+  const now=new Date(); const today=seoulDate(now);
+  if(per==='week') return new Date(weekKey(now.getTime()+1000)+'T00:00:00+09:00').getTime();
+  if(per==='month') return new Date(today.slice(0,8)+'01T00:00:00+09:00').getTime();
+  if(per==='q') return now.getTime()-90*864e5;
+  return 0;
+}
+/* 한 학생의 기간 내 기록: 마감이 지났거나 제출한 숙제만 센다 */
+function studentStat(list, per){
+  const from=periodStart(per), now=Date.now(); let n=0,dn=0,ok=0,tot=0;
+  list.forEach(x=>{ const due=new Date(x.due).getTime(); if(due<from) return; if(!(x.done||due<=now)) return; n++; if(x.done){dn++; ok+=x.ok; tot+=x.tot;} });
+  return {n,dn,ok,tot};
+}
+function weeklyCols(items, weeks){
+  // items: [{due,done}] -> 최근 weeks주의 완수율 (마감이 지났거나 제출한 숙제 기준)
+  const now=Date.now(); const cur=weekKey(now+1000); const keys=[];
+  let d=new Date(cur+'T00:00:00Z'); for(let i=0;i<weeks;i++){ keys.unshift(d.toISOString().slice(0,10)); d.setUTCDate(d.getUTCDate()-7); }
+  const m={}; keys.forEach(k=>m[k]={n:0,dn:0});
+  items.forEach(x=>{ const due=new Date(x.due).getTime(); if(!(x.done||due<=now)) return; const k=weekKey(due); if(m[k]){m[k].n++; if(x.done)m[k].dn++;} });
+  return keys.map(k=>({k, label:`${+k.slice(5,7)}/${+k.slice(8,10)}`, pct:m[k].n?Math.round(m[k].dn*100/m[k].n):null, n:m[k].n, dn:m[k].dn, cur:k===cur}));
+}
+function colsHTML(cols){
+  return `<div class="cols">${cols.map(c=>`<div class="c"><span class="v">${c.pct===null?'':c.pct+'%'}</span><i class="${c.cur?'cur':''}" style="height:${c.pct===null?3:Math.max(3,Math.round(c.pct*1.05))}px;${c.pct===null?'opacity:.25':''}"></i><span class="w">${c.label}</span></div>`).join('')}</div>`;
+}
 function tHs(){
-  const d=Te.d;
-  const rows=d.students.map(s=>{
-    let n=0,dn=0,ok=0,tot=0;
-    d.assignments.forEach(a=>{ if(!tTargets(a).includes(s.id)) return; n++; const sub=tSub(a,s.id); if(sub&&sub.done){dn++; ok+=sub.result.ok; tot+=sub.result.tot;} });
-    return `<tr><td>${esc(cName(s.class_id))}</td><td>${esc(s.name)}</td><td>${dn} / ${n}</td><td>${n?Math.round(dn*100/n)+'%':''}</td><td>${tot?Math.round(ok*100/tot)+'%':''}</td></tr>`;}).join('');
+  const d=Te.d; const H=Te.hs||(Te.hs={per:'month',cls:'all'});
+  const studs=d.students.filter(s=>H.cls==='all'||s.class_id===H.cls);
+  const perItems={};
+  const rows=studs.map(s=>{
+    const list=[];
+    d.assignments.forEach(a=>{ if(!tTargets(a).includes(s.id)) return; const sub=tSub(a,s.id); const e=tEff(a,s.id); list.push({due:e.due, done:!!(sub&&sub.done), ok:sub&&sub.done?sub.result.ok:0, tot:sub&&sub.done?sub.result.tot:0}); });
+    perItems[s.id]=list; return {s,list,st:studentStat(list,H.per)};
+  });
+  const perLabels={week:'이번 주',month:'이번 달',q:'최근 3개월',all:'전체'};
+  const bars=rows.map(({s,st})=>{ const c=st.n?Math.round(st.dn*100/st.n):0, r=st.tot?Math.round(st.ok*100/st.tot):0;
+    return `<div class="hb"><div class="nm" title="${esc(s.name)}">${esc(s.name)}</div><div><div class="tr"><i style="width:${c}%"></i></div><div class="tr2"><i style="width:${r}%"></i></div></div><div class="vl">${st.n?`${c}% (${st.dn}/${st.n})`:'숙제 없음'}${st.tot?`<br>정답 ${r}%`:''}</div></div>`; }).join('');
+  const all=[]; rows.forEach(r=>r.list.forEach(x=>all.push(x)));
+  const wk=weeklyCols(all,8);
   const m=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'}).slice(0,7);
   const used=d.exts.filter(e=>e.month===m).map(e=>sName(e.student_id));
-  return `<div class="grid"><div class="panel"><h2>학생별 이력<small>교재를 지워도 남아요</small></h2><div class="tw"><table><thead><tr><th>반</th><th>학생</th><th>제출</th><th>완수율</th><th>정답률</th></tr></thead><tbody>${rows||'<tr><td colspan="5">학생이 없어요.</td></tr>'}</tbody></table></div></div>
-   <div class="panel"><h2>이번 달 미루기를 쓴 학생</h2><div>${used.length?used.map(esc).join(', '):'<span class="meta">없어요.</span>'}</div></div></div>`;
+  const tot=rows.reduce((a,r)=>({n:a.n+r.st.n,dn:a.dn+r.st.dn,ok:a.ok+r.st.ok,t:a.t+r.st.tot}),{n:0,dn:0,ok:0,t:0});
+  return `<div class="grid"><div class="panel" style="grid-column:1/-1"><div class="ctl"><div class="seg">${Object.entries(perLabels).map(([k,l])=>`<button data-per="${k}" aria-pressed="${H.per===k}">${l}</button>`).join('')}</div>
+    <select id="hcls" aria-label="반 선택"><option value="all">전체 반</option>${d.classes.map(c=>`<option value="${c.id}" ${H.cls===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="meta">${perLabels[H.per]}, ${H.cls==='all'?'전체 반':esc(cName(H.cls))}: 완수율 ${tot.n?Math.round(tot.dn*100/tot.n):0}% (${tot.dn}/${tot.n}), 정답률 ${tot.t?Math.round(tot.ok*100/tot.t):0}%</div></div>
+   <div class="panel"><h2>학생별 완수율<small>${perLabels[H.per]}</small></h2><div class="hg"><span><b style="background:var(--accent)"></b>완수율</span><span><b style="background:var(--orange)"></b>정답률</span></div>${bars||'<div class="meta">학생이 없어요.</div>'}</div>
+   <div class="panel"><h2>주별 완수율<small>최근 8주, 주황은 이번 주</small></h2>${colsHTML(wk)}<div class="meta">마감이 지났거나 제출한 숙제를 기준으로 계산해요.</div>
+    <h2 style="margin-top:8px">이번 달 미루기를 쓴 학생</h2><div>${used.length?used.map(esc).join(', '):'<span class="meta">없어요.</span>'}</div></div></div>`;
 }
 
 /* ================= 이벤트 ================= */
@@ -577,6 +706,8 @@ function bind(){
   $$('[data-sfcode]').forEach(b=>b.onclick=async()=>{try{const c=await must(sb.rpc('admin_new_code',{p_staff:b.dataset.sfcode}));Te.sfmsg='새 초대 코드: '+c+'  (이 코드로 다시 가입하면 연결돼요)';await teacherLoad();render();}catch(e){toast(errMsg(e));}});
   $$('[data-sfdel]').forEach(b=>b.onclick=async()=>{ if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='정말 지우기';return;}
     try{await must(sb.rpc('admin_delete_staff',{p_staff:b.dataset.sfdel}));await teacherLoad();render();toast('지웠어요. 이 사람은 더 이상 로그인해도 쓸 수 없어요.');}catch(e){toast(errMsg(e));}});
+  $$('[data-per]').forEach(b=>b.onclick=()=>{ (Te.hs||(Te.hs={per:'month',cls:'all'})).per=b.dataset.per; render(); });
+  const hc=$('#hcls'); if(hc) hc.onchange=()=>{ (Te.hs||(Te.hs={per:'month',cls:'all'})).cls=hc.value; render(); };
   const nc=$('#nclose'); if(nc) nc.onclick=()=>{Te.note=null;render();};
   const mk=$('#mk'); if(mk) mk.onclick=newHw;
   $$('[data-open]').forEach(r=>r.onclick=()=>{Te.aid=r.dataset.open;Te.sid=null;Te.grade=null;render();});
