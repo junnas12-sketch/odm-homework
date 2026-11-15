@@ -173,10 +173,12 @@ tr.click{cursor:pointer}tr.click:hover{background:var(--accent-soft)}
 .note-sec{break-before:page;margin-top:0}
 @media print{
   @page{size:A4;margin:0}
-  body{background:#fff;padding:0}
-  .wrap>.top,.note-bar,.toast{display:none!important}
-  .wrap{padding:0;max-width:none}
-  .np{margin:0;border:0;page-break-after:always;break-after:page}
+  html,body{margin:0;padding:0;background:#fff}
+  body{padding:0!important}
+  .wrap>.top,.note-bar,.noteinfo,.toast{display:none!important}
+  .wrap{padding:0!important;margin:0!important;max-width:none!important}
+  .np{margin:0!important;border:0!important;height:1118px;box-sizing:border-box;page-break-after:always;break-after:page}
+  .np:last-of-type{page-break-after:auto;break-after:auto}
 }
 </style>
 </head>
@@ -574,7 +576,7 @@ function noteHTML(){
     <div class="abs hp">오답 노트  ${esc(name)}</div><div class="abs ho">오늘도수학</div><div class="abs hl"></div><div class="abs dv"></div>
     ${items.join('')}<div class="abs pn">${pi+1}</div></div>`).join('');
   return `<div class="note-bar"><button class="btn sm" onclick="window.print()">인쇄하기 (양면 인쇄)</button><button class="btn sm line" id="nclose">돌아가기</button></div>
-   <div class="meta" class="note-bar" style="margin-bottom:10px">인쇄 창에서 용지 A4, 배율 100%, 여백 없음, 배경 그래픽 켜기로 설정하면 화면과 똑같이 나와요.</div>${html}`;
+   <div class="meta noteinfo" style="margin-bottom:10px">인쇄 창에서 용지 A4, 배율 100%, 여백 없음, 배경 그래픽 켜기로 설정하면 화면과 똑같이 나와요.</div>${html}`;
 }
 /* --- 반과 학생 --- */
 function tSt(){
