@@ -485,7 +485,7 @@ function tHw(){
     const dest=d.targets.filter(t=>t.assignment_id===a.id).map(t=>t.class_id?cName(t.class_id):sName(t.student_id)).join(', ');
     return `<tr class="click" data-open="${a.id}"><td>${esc(a.title)}</td><td>${esc(dest)}</td><td>${fmt(a.due)}</td><td>${dn} / ${tg.length}</td></tr>`;}).join('');
   return `<div class="grid">
-   <div class="panel"><h2>새 숙제 내기<small>수업 날짜의 이틀 뒤 밤 12시에 마감돼요</small></h2>
+   <div class="panel"><h2>새 숙제 내기<small>수업 날짜 다음 날 밤 12시에 마감돼요</small></h2>
     <div class="fld">교재<select id="nb">${d.books.map(b=>`<option value="${b.id}">${esc(b.name)} (${b.count}문항)</option>`).join('')}</select></div>
     <div class="row"><div class="fld">시작 번호<input id="nf" type="number" min="1" value="1"></div><div class="fld">끝 번호<input id="nt" type="number" min="1" value="16"></div></div>
     <div class="fld">수업 날짜<input id="nd" type="date" value="${today}"></div>
@@ -923,7 +923,7 @@ async function newHw(){
   if(!cls.length&&!sel.length){toast('반이나 학생을 하나 이상 골라 주세요.');return;}
   const date=$('#nd').value||seoulToday();
   try{
-    const a=await must(sb.from('assignments').insert({book_id:book.id,book_name:book.name,from_num:f,to_num:t,due:midnightOf(date,2),title:`${book.name} ${f}~${t}번`}).select().single());
+    const a=await must(sb.from('assignments').insert({book_id:book.id,book_name:book.name,from_num:f,to_num:t,due:midnightOf(date,1),title:`${book.name} ${f}~${t}번`}).select().single());
     const rows=cls.map(c=>({assignment_id:a.id,class_id:c})).concat(sel.map(s=>({assignment_id:a.id,student_id:s})));
     await must(sb.from('assignment_targets').insert(rows));
     await teacherLoad(); Te.aid=a.id; Te.sid=null; render(); toast('숙제를 냈어요. 학생 폰에서 바로 보여요.');
