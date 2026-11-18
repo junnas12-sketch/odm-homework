@@ -227,7 +227,7 @@ function fmt(ts){
   return `${p.month}월 ${p.day}일 ${p.hour}:${p.minute}`;
 }
 function seoulToday(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date());return p;}  // YYYY-MM-DD
-function midnightOf(dateStr){return new Date(new Date(dateStr+'T00:00:00+09:00').getTime()+864e5).toISOString();}
+function midnightOf(dateStr,plusDays){return new Date(new Date(dateStr+'T00:00:00+09:00').getTime()+864e5*(1+(plusDays||0))).toISOString();}
 const ERR = {bad_login:'이름이나 번호가 맞지 않아요.', locked:'여러 번 틀려서 잠시 잠겼어요. 15분 뒤에 다시 해 주세요.', no_session:'다시 로그인해 주세요.',
   already_done:'이미 제출한 숙제예요.', not_found:'이 숙제를 찾을 수 없어요.', gone:'지난 교재라 더 풀 수 없어요.', not_late:'아직 마감 전이에요.', ext_used:'이번 달 미루기는 이미 썼어요.',
   bad_pin:'번호는 숫자 4~6자리로 적어 주세요.', not_teacher:'선생님 로그인이 필요해요.', bad_code:'초대 코드가 맞지 않거나 이미 쓴 코드예요.', not_your_class:'맡은 반이 아니에요.', not_admin:'관리자만 할 수 있어요.', self_delete:'자기 자신은 지울 수 없어요.'};
@@ -344,8 +344,7 @@ function sHome(){
     else if(!late){ pill='<span class="pill warn">'+(isToday(a.due)?'오늘 마감':'해야 해요')+'</span>'; act=`<button class="btn" data-act="work" data-aid="${a.id}">풀러 가기</button>`; }
     else {
       pill='<span class="pill bad">기한 지남</span>';
-      act=`<button class="btn line" data-act="work" data-aid="${a.id}">늦게라도 제출하기</button>
-        <button class="btn sec" data-act="ext" data-aid="${a.id}" ${h.ext_used?'disabled':''}>${h.ext_used?'이번 달 미루기는 이미 썼어요':'내일 밤 12시까지 미루기 (이번 달 1번)'}</button>`;
+      act=`<button class="btn line" data-act="work" data-aid="${a.id}">늦게라도 제출하기</button>`;
     }
     return `<div class="hw ${past?'past':''}"><div class="hrow"><h3>${esc(a.title)}</h3>${pill}</div>
       <div class="meta">마감 ${fmt(a.due)}${a.extended?' (미룸)':''}</div>${act}</div>`;
@@ -426,11 +425,6 @@ async function sAct(a,aid){
   if(a==='home'){ St.screen='home'; await studentHome(); return render(); }
   if(a==='next'){ St.page++; return render(); }
   if(a==='prev'){ St.page=Math.max(0,St.page-1); return render(); }
-  if(a==='ext'){
-    try{ await must(sb.rpc('student_extend',{p_token:St.token,p_aid:aid})); toast('내일 밤 12시까지로 미뤘어요. 이번 달 미루기는 이걸로 끝이에요.'); await studentHome(); render(); }
-    catch(e){ toast(errMsg(e)); }
-    return;
-  }
   if(a==='submit'){ St.confirm=true; return render(); }
   if(a==='cancel'){ St.confirm=false; return render(); }
   if(a==='dosubmit'){
@@ -491,7 +485,7 @@ function tHw(){
     const dest=d.targets.filter(t=>t.assignment_id===a.id).map(t=>t.class_id?cName(t.class_id):sName(t.student_id)).join(', ');
     return `<tr class="click" data-open="${a.id}"><td>${esc(a.title)}</td><td>${esc(dest)}</td><td>${fmt(a.due)}</td><td>${dn} / ${tg.length}</td></tr>`;}).join('');
   return `<div class="grid">
-   <div class="panel"><h2>새 숙제 내기<small>수업한 날 밤 12시에 마감돼요</small></h2>
+   <div class="panel"><h2>새 숙제 내기<small>수업 날짜의 이틀 뒤 밤 12시에 마감돼요</small></h2>
     <div class="fld">교재<select id="nb">${d.books.map(b=>`<option value="${b.id}">${esc(b.name)} (${b.count}문항)</option>`).join('')}</select></div>
     <div class="row"><div class="fld">시작 번호<input id="nf" type="number" min="1" value="1"></div><div class="fld">끝 번호<input id="nt" type="number" min="1" value="16"></div></div>
     <div class="fld">수업 날짜<input id="nd" type="date" value="${today}"></div>
@@ -829,14 +823,13 @@ function tHs(){
   const all=[]; rows.forEach(r=>r.list.forEach(x=>all.push(x)));
   const wk=weeklyCols(all,8);
   const m=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'}).slice(0,7);
-  const used=d.exts.filter(e=>e.month===m).map(e=>sName(e.student_id));
   const tot=rows.reduce((a,r)=>({n:a.n+r.st.n,dn:a.dn+r.st.dn,ok:a.ok+r.st.ok,t:a.t+r.st.tot}),{n:0,dn:0,ok:0,t:0});
   return `<div class="grid"><div class="panel" style="grid-column:1/-1"><div class="ctl"><div class="seg">${Object.entries(perLabels).map(([k,l])=>`<button data-per="${k}" aria-pressed="${H.per===k}">${l}</button>`).join('')}</div>
     <select id="hcls" aria-label="반 선택"><option value="all">전체 반</option>${d.classes.map(c=>`<option value="${c.id}" ${H.cls===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
     <div class="meta">${perLabels[H.per]}, ${H.cls==='all'?'전체 반':esc(cName(H.cls))}: 완수율 ${tot.n?Math.round(tot.dn*100/tot.n):0}% (${tot.dn}/${tot.n}), 정답률 ${tot.t?Math.round(tot.ok*100/tot.t):0}%</div></div>
    <div class="panel"><h2>학생별 완수율<small>${perLabels[H.per]}</small></h2><div class="hg"><span><b style="background:var(--accent)"></b>완수율</span><span><b style="background:var(--orange)"></b>정답률</span></div>${bars||'<div class="meta">학생이 없어요.</div>'}</div>
    <div class="panel"><h2>주별 완수율<small>최근 8주, 주황은 이번 주</small></h2>${colsHTML(wk)}<div class="meta">마감이 지났거나 제출한 숙제를 기준으로 계산해요.</div>
-    <h2 style="margin-top:8px">이번 달 미루기를 쓴 학생</h2><div>${used.length?used.map(esc).join(', '):'<span class="meta">없어요.</span>'}</div></div></div>`;
+</div></div>`;
 }
 
 /* ================= 이벤트 ================= */
@@ -930,7 +923,7 @@ async function newHw(){
   if(!cls.length&&!sel.length){toast('반이나 학생을 하나 이상 골라 주세요.');return;}
   const date=$('#nd').value||seoulToday();
   try{
-    const a=await must(sb.from('assignments').insert({book_id:book.id,book_name:book.name,from_num:f,to_num:t,due:midnightOf(date),title:`${book.name} ${f}~${t}번`}).select().single());
+    const a=await must(sb.from('assignments').insert({book_id:book.id,book_name:book.name,from_num:f,to_num:t,due:midnightOf(date,2),title:`${book.name} ${f}~${t}번`}).select().single());
     const rows=cls.map(c=>({assignment_id:a.id,class_id:c})).concat(sel.map(s=>({assignment_id:a.id,student_id:s})));
     await must(sb.from('assignment_targets').insert(rows));
     await teacherLoad(); Te.aid=a.id; Te.sid=null; render(); toast('숙제를 냈어요. 학생 폰에서 바로 보여요.');
