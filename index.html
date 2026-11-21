@@ -256,7 +256,9 @@ function parseParts(ans){
     const subs=text.split(/\s*,\s+|\s{2,}/).map(x=>x.trim()).filter(Boolean); if(!subs.length) return null;
     for(const sp of subs){
       let lab='',val=sp;
-      if(hangul.test(sp.replace(unitEnd,''))){
+      const am=sp.match(/^([A-Za-z](?:\([a-z]\))?)\s*=\s*(\S.*)$/);
+      if(am && !hangul.test(am[2].replace(unitEnd,''))){ lab=am[1]; val=am[2].trim(); }
+      else if(hangul.test(sp.replace(unitEnd,''))){
         const m=sp.match(new RegExp('^(.*?)\\s+(\\S+(?:\\s+'+UNIT_RE+')?)$')); if(!m) return null;
         lab=m[1].trim(); val=m[2].trim();
         if(hangul.test(val.replace(unitEnd,'')) && val!=='없음') return null;
