@@ -246,29 +246,40 @@ const isAuto = it => GRADED(it.type) || (it.type==='복수답' && !!it.parts);
 const UNIT_RE = '(?:m/s²|m/s|cm³|cm²/s|cm²|cm|kg|m|원)';
 function parseParts(ans){
   ans=String(ans||'').trim(); let groups;
+  if(/또는|○|×|\|/.test(ans)) return null;
   if(/\(\d+\)/.test(ans)){
     const pieces=ans.split(/(\(\d+\))/); groups=[];
     if(pieces[0].trim()) return null;
     for(let i=1;i<pieces.length;i+=2) groups.push([pieces[i],(pieces[i+1]||'').trim()]);
   } else groups=[['',ans]];
-  const parts=[]; const unitEnd=new RegExp(UNIT_RE+'$'); const hangul=/[가-힣]/;
+  const hangul=/[가-힣]/, unitEnd=new RegExp(UNIT_RE+'$'); const parts=[];
   for(const [g,text] of groups){
-    const subs=text.split(/\s*,\s+|\s{2,}/).map(x=>x.trim()).filter(Boolean); if(!subs.length) return null;
-    for(const sp of subs){
-      let lab='',val=sp;
+    if(!text) return null;
+    // 괄호와 중괄호 안의 쉼표는 그대로 두고, 바깥의 쉼표에서만 나눔
+    const subs=[]; let depth=0, cur='';
+    for(let i=0;i<text.length;i++){ const ch=text[i];
+      if('({['.includes(ch)) depth++; else if(')}]'.includes(ch)) depth--;
+      if(depth===0 && ch===','){ subs.push(cur.trim()); cur=''; continue; }
+      cur+=ch; }
+    subs.push(cur.trim());
+    let last=null;
+    for(const sp of subs){ if(!sp) return null;
+      let lab='',val=sp,labeled=false;
       const am=sp.match(/^([A-Za-z](?:\([a-z]\))?)\s*=\s*(\S.*)$/);
-      if(am && !hangul.test(am[2].replace(unitEnd,''))){ lab=am[1]; val=am[2].trim(); }
-      else if(hangul.test(sp.replace(unitEnd,''))){
-        const m=sp.match(new RegExp('^(.*?)\\s+(\\S+(?:\\s+'+UNIT_RE+')?)$')); if(!m) return null;
-        lab=m[1].trim(); val=m[2].trim();
-        if(hangul.test(val.replace(unitEnd,'')) && val!=='없음') return null;
-      }
-      parts.push({label:(g+' '+lab).trim(),value:val});
+      const hm=sp.match(/^([가-힣][가-힣 ]*?)\s+([^가-힣\s].*)$/);
+      if(am && !hangul.test(am[2].replace(unitEnd,''))){ lab=am[1]; val=am[2].trim(); labeled=true; }
+      else if(hm){ lab=hm[1].trim(); val=hm[2].trim(); labeled=true; }
+      else if(/^[a-z]\s*[<>≤≥]/.test(sp)) return null;
+      if(!labeled && last){ last.value+=', '+val; continue; }
+      last=labeled?{label:(g+' '+lab).trim(),value:val}:null;
+      parts.push(last||{label:g,value:val});
     }
   }
   if(parts.length<2) return null;
-  if(/또는|○|×/.test(ans)) return null;
-  for(const p of parts){ const v=p.value; if((v.match(/\(/g)||[]).length!==(v.match(/\)/g)||[]).length || /^[\/\-−]+$/.test(v) || v==='') return null; }
+  if(!groups.some(x=>x[0]) && parts.every(q=>!q.label)){ parts.forEach((q,i)=>{q.label='빈칸 '+(i+1);}); }
+  for(const q of parts){ const v=q.value;
+    if((v.match(/\(/g)||[]).length!==(v.match(/\)/g)||[]).length || (v.match(/\{/g)||[]).length!==(v.match(/\}/g)||[]).length || /^[\/\-−]+$/.test(v) || v==='') return null;
+    if((v.match(/[가-힣]/g)||[]).length>8) return null; }
   return parts;
 }
 let mode = null;               // 'student' | 'teacher' | null
