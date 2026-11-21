@@ -246,9 +246,10 @@ const isAuto = it => GRADED(it.type) || (it.type==='복수답' && !!it.parts);
 const UNIT_RE = '(?:m/s²|m/s|cm³|cm²/s|cm²|cm|kg|m|원)';
 function parseParts(ans){
   ans=String(ans||'').trim(); let groups;
-  if(/또는|○|×|\|/.test(ans)) return null;
-  if(/\(\d+\)/.test(ans)){
-    const pieces=ans.split(/(\(\d+\))/); groups=[];
+  if(/또는|○|×|\||:/.test(ans)) return null;
+  const MK=/((?<![A-Za-z0-9가-힣)])\(\d+\)(?=\s|$))/;
+  if(MK.test(ans)){
+    const pieces=ans.split(MK); groups=[];
     if(pieces[0].trim()) return null;
     for(let i=1;i<pieces.length;i+=2) groups.push([pieces[i],(pieces[i+1]||'').trim()]);
   } else groups=[['',ans]];
@@ -265,7 +266,7 @@ function parseParts(ans){
     let last=null;
     for(const sp of subs){ if(!sp) return null;
       let lab='',val=sp,labeled=false;
-      const am=sp.match(/^([A-Za-z](?:\([a-z]\))?)\s*=\s*(\S.*)$/);
+      const am=sp.match(/^([A-Za-z](?:\([a-z0-9]\))?)\s*=\s*(\S.*)$/);
       const hm=sp.match(/^([가-힣][가-힣 ]*?)\s+([^가-힣\s].*)$/);
       if(am && !hangul.test(am[2].replace(unitEnd,''))){ lab=am[1]; val=am[2].trim(); labeled=true; }
       else if(hm){ lab=hm[1].trim(); val=hm[2].trim(); labeled=true; }
@@ -279,7 +280,8 @@ function parseParts(ans){
   if(!groups.some(x=>x[0]) && parts.every(q=>!q.label)){ parts.forEach((q,i)=>{q.label='빈칸 '+(i+1);}); }
   for(const q of parts){ const v=q.value;
     if((v.match(/\(/g)||[]).length!==(v.match(/\)/g)||[]).length || (v.match(/\{/g)||[]).length!==(v.match(/\}/g)||[]).length || /^[\/\-−]+$/.test(v) || v==='') return null;
-    if((v.match(/[가-힣]/g)||[]).length>8) return null; }
+    if((v.match(/[가-힣]/g)||[]).length>6) return null; }
+  for(const [g] of groups){ if(!g) continue; const same=parts.filter(q=>q.label===g); if(same.length>1) same.forEach((q,i)=>{q.label=g+' '+(i+1)+'번째 답';}); }
   return parts;
 }
 let mode = null;               // 'student' | 'teacher' | null
