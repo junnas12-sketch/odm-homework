@@ -402,7 +402,7 @@ function sWork(){
       return `<div class="sr multi"><span class="qn">${q.num}</span><div class="mi">${q.parts.map((p,i)=>`<label class="mrow"><span class="ml">${esc(p.label||String(i+1))}</span><input type="text" data-mi="${q.num}" data-pi="${i}" value="${esc(arr[i]||'')}" placeholder="답" autocomplete="off" autocapitalize="off" aria-label="${q.num}번 ${esc(p.label||String(i+1))}"></label>`).join('')}</div></div>`; }
     return `<div class="sr chkr"><span class="qn">${q.num}</span><span class="t" style="font-weight:700">선생님 확인</span></div>`;
   }).join('');
-  const keys=['−','/','√','π','^','≤','≥','(',')'].map(k=>`<button data-key="${k}" type="button">${k}</button>`).join('');
+  const keys=['−','/','√','π','^','≤','≥','(',')','~','→'].map(k=>`<button data-key="${k}" type="button">${k}</button>`).join('');
   return `<div class="who">${esc(w.title)}</div>
    <div class="bar"><i style="width:${Math.round((p+1)*100/pages)}%"></i></div>
    <div class="pager"><span>${p+1} / ${pages}쪽</span><span>한 쪽에 ${per}문항</span></div>
